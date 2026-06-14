@@ -1805,7 +1805,6 @@ const HomePage = ({ setCurrentPage, setSelectedScript, setSelectedTutorial }) =>
         <FeaturedScripts setCurrentPage={setCurrentPage} setSelectedScript={setSelectedScript} />
         <WhySection />
         <LatestTutorials setCurrentPage={setCurrentPage} setSelectedTutorial={setSelectedTutorial} />
-        <Footer />
     </div>
 );
 
@@ -1922,8 +1921,6 @@ const ScriptsPage = ({ setCurrentPage, setSelectedScript, filteredScripts }) => 
                     </div>
                 )}
             </div>
-
-            <Footer />
         </div>
     );
 };
@@ -2130,8 +2127,6 @@ const ScriptDetailPage = ({ script, setCurrentPage }) => {
                     </div>
                 </div>
             </div>
-
-            <Footer />
         </div>
     );
 };
@@ -2264,8 +2259,6 @@ const TutorialsPage = ({ setCurrentPage, setSelectedTutorial }) => {
                     </div>
                 )}
             </div>
-
-            <Footer />
         </div>
     );
 };
@@ -2359,8 +2352,6 @@ const TutorialDetailPage = ({ tutorial, setCurrentPage }) => {
                     </div>
                 </motion.article>
             </div>
-
-            <Footer />
         </div>
     );
 };
@@ -2420,8 +2411,6 @@ const NewsPage = ({ setCurrentPage }) => {
                     ))}
                 </div>
             </div>
-
-            <Footer />
         </div>
     );
 };
@@ -2622,8 +2611,6 @@ const ContactPage = ({ setCurrentPage, addMessage }) => {
                     </div>
                 </div>
             </div>
-
-            <Footer />
         </div>
     );
 };
