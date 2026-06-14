@@ -599,31 +599,6 @@ const AdminDashboard = ({ isOpen, onClose, scripts, setScripts, tutorials, setTu
         setSelectedMessage(null);
     };
 
-    const handleDelete = (itemType, id) => {
-        const setters = {
-            scripts: setScripts,
-            tutorials: setTutorials,
-            news: setNews
-        };
-
-        const collections = {
-            scripts: scripts,
-            tutorials: tutorials,
-            news: news
-        };
-
-        const updatedCollection = collections[itemType].filter(item => item.id !== id);
-        setters[itemType](updatedCollection);
-    };
-
-    const handleReply = () => {
-        if (!replyText.trim()) return;
-
-        addReply(selectedMessage.id, replyText);
-        setReplyText('');
-        setSelectedMessage(null);
-    };
-
     const unreadCount = messages.filter(m => m.status === 'unread').length;
 
     const renderDashboard = () => (
