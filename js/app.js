@@ -215,7 +215,7 @@ const Navbar = ({ currentPage, setCurrentPage, isMobileMenuOpen, setIsMobileMenu
 };
 
 // Footer Component
-const Footer = () => (
+const Footer = ({ isAdmin, isAdminPanelOpen, setIsAdminPanelOpen, logout }) => (
     <footer className="bg-kali-dark border-t border-kali-border py-12">
         <div className="container mx-auto px-4 transition-all duration-500">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-8 transition-all duration-500">
@@ -326,12 +326,700 @@ const Footer = () => (
             </div>
 
             <div className="mt-8 pt-8 border-t border-kali-border text-center transition-all duration-500">
-                <p className="text-gray-500 text-sm">
+                <p className="text-gray-500 text-sm mb-4">
                     © {new Date().getFullYear()} Goncik-tech. All rights reserved.
                 </p>
+
+                <div className="flex items-center justify-center gap-4">
+                    {isAdmin ? (
+                        <div className="flex items-center gap-3">
+                            <button
+                                onClick={() => setIsAdminPanelOpen(true)}
+                                className="font-mono text-xs text-neon-green hover:text-neon-blue transition-colors"
+                            >
+                                Panel Admina
+                            </button>
+                            <span className="text-gray-600">|</span>
+                            <button
+                                onClick={logout}
+                                className="font-mono text-xs text-red-500 hover:text-red-400 transition-colors"
+                            >
+                                Wyloguj
+                            </button>
+                        </div>
+                    ) : (
+                        <button
+                            onClick={() => setIsAdminPanelOpen(true)}
+                            className="font-mono text-xs text-gray-600 hover:text-neon-green transition-colors"
+                        >
+                            Admin
+                        </button>
+                    )}
+                </div>
             </div>
         </div>
     </footer>
+);
+
+// Admin Auth Hook
+function useAdminAuth() {
+    const [isAdmin, setIsAdmin] = React.useState(false);
+    const [isAdminPanelOpen, setIsAdminPanelOpen] = React.useState(false);
+
+    React.useEffect(() => {
+        const storedAuth = localStorage.getItem('adminAuth');
+        if (storedAuth === 'authenticated') {
+            setIsAdmin(true);
+        }
+    }, []);
+
+    const login = (password) => {
+        const adminPassword = 'goncik123'; // Zmień na swoje hasło
+        if (password === adminPassword) {
+            localStorage.setItem('adminAuth', 'authenticated');
+            setIsAdmin(true);
+            return true;
+        }
+        return false;
+    };
+
+    const logout = () => {
+        localStorage.removeItem('adminAuth');
+        setIsAdmin(false);
+    };
+
+    return { isAdmin, isAdminPanelOpen, setIsAdminPanelOpen, login, logout };
+}
+
+// Admin Login Component
+const AdminLogin = ({ isOpen, onClose, onLogin }) => {
+    const [password, setPassword] = React.useState('');
+    const [error, setError] = React.useState('');
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        if (!password.trim()) {
+            setError('Podaj hasło');
+            return;
+        }
+
+        if (onLogin(password)) {
+            setError('');
+            setPassword('');
+            onClose();
+        } else {
+            setError('Nieprawidłowe hasło');
+        }
+    };
+
+    if (!isOpen) return null;
+
+    return (
+        <div
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50"
+            onClick={onClose}
+        >
+            <div
+                className="glass-effect p-8 rounded-lg max-w-md w-full"
+                onClick={(e) => e.stopPropagation()}
+            >
+                <h3 className="font-mono text-2xl font-bold text-neon-green mb-6">
+                    Panel Admina
+                </h3>
+
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <div>
+                        <label className="block text-sm font-mono text-gray-400 mb-2">
+                            Hasło
+                        </label>
+                        <input
+                            type="password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            className="w-full bg-kali-black border border-kali-border rounded px-4 py-3 text-white font-mono focus:outline-none focus:border-neon-green"
+                            placeholder="Podaj hasło admina"
+                        />
+                    </div>
+
+                    {error && (
+                        <div className="text-red-500 font-mono text-sm">
+                            {error}
+                        </div>
+                    )}
+
+                    <div className="flex gap-3">
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="flex-1 font-mono px-4 py-3 border border-neon-green text-neon-green rounded-lg hover:bg-neon-green hover:text-black transition-colors"
+                        >
+                            Anuluj
+                        </button>
+                        <button
+                            type="submit"
+                            className="flex-1 font-mono px-4 py-3 bg-neon-green text-black rounded-lg hover:bg-neon-blue transition-colors"
+                        >
+                            Zaloguj
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+};
+
+// Admin Dashboard Component
+const AdminDashboard = ({ isOpen, onClose, scripts, setScripts, tutorials, setTutorials, news, setNews }) => {
+    const [activeTab, setActiveTab] = React.useState('dashboard');
+    const [editedItem, setEditedItem] = React.useState(null);
+    const [showAddForm, setShowAddForm] = React.useState(false);
+    const [formData, setFormData] = React.useState({});
+
+    if (!isOpen) return null;
+
+    const handleSave = (itemType, itemData) => {
+        const setters = {
+            scripts: setScripts,
+            tutorials: setTutorials,
+            news: setNews
+        };
+
+        const collections = {
+            scripts: scripts,
+            tutorials: tutorials,
+            news: news
+        };
+
+        let updatedCollection;
+
+        if (itemData.id) {
+            // Edycja istniejącego
+            updatedCollection = collections[itemType].map(item =>
+                item.id === itemData.id ? { ...item, ...itemData } : item
+            );
+        } else {
+            // Dodawanie nowego
+            const newId = Math.max(...collections[itemType].map(item => item.id)) + 1;
+            updatedCollection = [...collections[itemType], { id: newId, ...itemData }];
+        }
+
+        setters[itemType](updatedCollection);
+        setEditedItem(null);
+        setShowAddForm(false);
+        setFormData({});
+    };
+
+    const handleDelete = (itemType, id) => {
+        const setters = {
+            scripts: setScripts,
+            tutorials: setTutorials,
+            news: setNews
+        };
+
+        const collections = {
+            scripts: scripts,
+            tutorials: tutorials,
+            news: news
+        };
+
+        const updatedCollection = collections[itemType].filter(item => item.id !== id);
+        setters[itemType](updatedCollection);
+    };
+
+    const renderDashboard = () => (
+        <div className="space-y-6">
+            <div className="glass-effect p-6 rounded-lg">
+                <h3 className="font-mono text-2xl font-bold text-neon-green mb-4">
+                    Statystyki
+                </h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="text-center">
+                        <div className="font-mono text-3xl font-bold text-neon-green">{scripts.length}</div>
+                        <div className="text-gray-400 text-sm">Skrypty</div>
+                    </div>
+                    <div className="text-center">
+                        <div className="font-mono text-3xl font-bold text-neon-blue">{tutorials.length}</div>
+                        <div className="text-gray-400 text-sm">Tutoriale</div>
+                    </div>
+                    <div className="text-center">
+                        <div className="font-mono text-3xl font-bold text-neon-purple">{news.length}</div>
+                        <div className="text-gray-400 text-sm">Aktualności</div>
+                    </div>
+                    <div className="text-center">
+                        <div className="font-mono text-3xl font-bold text-neon-pink">{scripts.reduce((acc, s) => acc + s.downloads, 0)}</div>
+                        <div className="text-gray-400 text-sm">Pobrań</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+
+    const renderItemsList = (items, itemType) => (
+        <div className="space-y-4">
+            {showAddForm && editedItem === null ? (
+                <div className="glass-effect p-6 rounded-lg">
+                    <h3 className="font-mono text-xl font-bold text-neon-green mb-4">
+                        Dodaj nowy
+                    </h3>
+                    {itemType === 'scripts' && (
+                        <ScriptForm
+                            formData={formData}
+                            setFormData={setFormData}
+                            onSave={(data) => handleSave(itemType, data)}
+                            onCancel={() => setShowAddForm(false)}
+                        />
+                    )}
+                    {itemType === 'tutorials' && (
+                        <TutorialForm
+                            formData={formData}
+                            setFormData={setFormData}
+                            onSave={(data) => handleSave(itemType, data)}
+                            onCancel={() => setShowAddForm(false)}
+                        />
+                    )}
+                    {itemType === 'news' && (
+                        <NewsForm
+                            formData={formData}
+                            setFormData={setFormData}
+                            onSave={(data) => handleSave(itemType, data)}
+                            onCancel={() => setShowAddForm(false)}
+                        />
+                    )}
+                </div>
+            ) : null}
+
+            {items.map(item => (
+                <div key={item.id} className="glass-effect p-4 rounded-lg">
+                    <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                            <h4 className="font-mono font-bold text-white mb-2">
+                                {item.name || item.title}
+                            </h4>
+                            <p className="text-gray-400 text-sm">
+                                {item.description || item.excerpt}
+                            </p>
+                        </div>
+                        <div className="flex gap-2 ml-4">
+                            <button
+                                onClick={() => {
+                                    setEditedItem(item);
+                                    setFormData(item);
+                                    setShowAddForm(true);
+                                }}
+                                className="p-2 text-neon-blue hover:text-neon-green transition-colors"
+                            >
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                                </svg>
+                            </button>
+                            <button
+                                onClick={() => handleDelete(itemType, item.id)}
+                                className="p-2 text-red-500 hover:text-red-400 transition-colors"
+                            >
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
+
+    return (
+        <div
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50"
+            onClick={onClose}
+        >
+            <div
+                className="glass-effect rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden"
+                onClick={(e) => e.stopPropagation()}
+            >
+                <div className="p-6 border-b border-kali-border flex items-center justify-between">
+                    <h3 className="font-mono text-2xl font-bold text-neon-green">
+                        Panel Admina
+                    </h3>
+                    <button
+                        onClick={onClose}
+                        className="text-gray-400 hover:text-white transition-colors"
+                    >
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M18 6L6 18M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+
+                <div className="grid grid-cols-4 h-[calc(90vh-80px)]">
+                    {/* Sidebar */}
+                    <div className="col-span-1 border-r border-kali-border p-4 space-y-2">
+                        <button
+                            onClick={() => {
+                                setActiveTab('dashboard');
+                                setShowAddForm(false);
+                                setEditedItem(null);
+                            }}
+                            className={`w-full text-left px-4 py-3 rounded-lg font-mono text-sm transition-colors ${
+                                activeTab === 'dashboard'
+                                    ? 'bg-neon-green text-black'
+                                    : 'text-gray-300 hover:bg-kali-border'
+                            }`}
+                        >
+                            Dashboard
+                        </button>
+                        <button
+                            onClick={() => {
+                                setActiveTab('scripts');
+                                setShowAddForm(false);
+                                setEditedItem(null);
+                            }}
+                            className={`w-full text-left px-4 py-3 rounded-lg font-mono text-sm transition-colors ${
+                                activeTab === 'scripts'
+                                    ? 'bg-neon-green text-black'
+                                    : 'text-gray-300 hover:bg-kali-border'
+                            }`}
+                        >
+                            Skrypty
+                        </button>
+                        <button
+                            onClick={() => {
+                                setActiveTab('tutorials');
+                                setShowAddForm(false);
+                                setEditedItem(null);
+                            }}
+                            className={`w-full text-left px-4 py-3 rounded-lg font-mono text-sm transition-colors ${
+                                activeTab === 'tutorials'
+                                    ? 'bg-neon-green text-black'
+                                    : 'text-gray-300 hover:bg-kali-border'
+                            }`}
+                        >
+                            Tutoriale
+                        </button>
+                        <button
+                            onClick={() => {
+                                setActiveTab('news');
+                                setShowAddForm(false);
+                                setEditedItem(null);
+                            }}
+                            className={`w-full text-left px-4 py-3 rounded-lg font-mono text-sm transition-colors ${
+                                activeTab === 'news'
+                                    ? 'bg-neon-green text-black'
+                                    : 'text-gray-300 hover:bg-kali-border'
+                            }`}
+                        >
+                            Aktualności
+                        </button>
+                    </div>
+
+                    {/* Content */}
+                    <div className="col-span-3 p-6 overflow-y-auto">
+                        {activeTab === 'dashboard' && renderDashboard()}
+                        {activeTab === 'scripts' && (
+                            <div>
+                                <div className="flex items-center justify-between mb-6">
+                                    <h3 className="font-mono text-2xl font-bold text-neon-green">
+                                        Skrypty
+                                    </h3>
+                                    <button
+                                        onClick={() => {
+                                            setShowAddForm(true);
+                                            setEditedItem(null);
+                                            setFormData({});
+                                        }}
+                                        className="font-mono px-4 py-2 bg-neon-green text-black rounded-lg hover:bg-neon-blue transition-colors"
+                                    >
+                                        + Dodaj
+                                    </button>
+                                </div>
+                                {renderItemsList(scripts, 'scripts')}
+                            </div>
+                        )}
+                        {activeTab === 'tutorials' && (
+                            <div>
+                                <div className="flex items-center justify-between mb-6">
+                                    <h3 className="font-mono text-2xl font-bold text-neon-green">
+                                        Tutoriale
+                                    </h3>
+                                    <button
+                                        onClick={() => {
+                                            setShowAddForm(true);
+                                            setEditedItem(null);
+                                            setFormData({});
+                                        }}
+                                        className="font-mono px-4 py-2 bg-neon-green text-black rounded-lg hover:bg-neon-blue transition-colors"
+                                    >
+                                        + Dodaj
+                                    </button>
+                                </div>
+                                {renderItemsList(tutorials, 'tutorials')}
+                            </div>
+                        )}
+                        {activeTab === 'news' && (
+                            <div>
+                                <div className="flex items-center justify-between mb-6">
+                                    <h3 className="font-mono text-2xl font-bold text-neon-green">
+                                        Aktualności
+                                    </h3>
+                                    <button
+                                        onClick={() => {
+                                            setShowAddForm(true);
+                                            setEditedItem(null);
+                                            setFormData({});
+                                        }}
+                                        className="font-mono px-4 py-2 bg-neon-green text-black rounded-lg hover:bg-neon-blue transition-colors"
+                                    >
+                                        + Dodaj
+                                    </button>
+                                </div>
+                                {renderItemsList(news, 'news')}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// Script Form Component
+const ScriptForm = ({ formData, setFormData, onSave, onCancel }) => (
+    <form onSubmit={(e) => { e.preventDefault(); onSave(formData); }} className="space-y-4">
+        <div>
+            <label className="block text-sm font-mono text-gray-400 mb-2">Nazwa</label>
+            <input
+                type="text"
+                value={formData.name || ''}
+                onChange={(e) => setFormData({...formData, name: e.target.value})}
+                className="w-full bg-kali-black border border-kali-border rounded px-4 py-2 text-white font-mono focus:outline-none focus:border-neon-green"
+                required
+            />
+        </div>
+        <div>
+            <label className="block text-sm font-mono text-gray-400 mb-2">Opis</label>
+            <textarea
+                value={formData.description || ''}
+                onChange={(e) => setFormData({...formData, description: e.target.value})}
+                className="w-full bg-kali-black border border-kali-border rounded px-4 py-2 text-white font-mono focus:outline-none focus:border-neon-green"
+                rows="3"
+                required
+            />
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+            <div>
+                <label className="block text-sm font-mono text-gray-400 mb-2">Kategoria</label>
+                <select
+                    value={formData.category || 'bypass'}
+                    onChange={(e) => setFormData({...formData, category: e.target.value})}
+                    className="w-full bg-kali-black border border-kali-border rounded px-4 py-2 text-white font-mono focus:outline-none focus:border-neon-green"
+                >
+                    <option value="bypass">Bypass</option>
+                    <option value="script">Script</option>
+                    <option value="bot">Bot</option>
+                    <option value="tool">Tool</option>
+                    <option value="generator">Generator</option>
+                </select>
+            </div>
+            <div>
+                <label className="block text-sm font-mono text-gray-400 mb-2">Typ</label>
+                <select
+                    value={formData.isFree ? 'free' : 'premium'}
+                    onChange={(e) => setFormData({...formData, isFree: e.target.value === 'free'})}
+                    className="w-full bg-kali-black border border-kali-border rounded px-4 py-2 text-white font-mono focus:outline-none focus:border-neon-green"
+                >
+                    <option value="free">Darmowy</option>
+                    <option value="premium">Premium</option>
+                </select>
+            </div>
+        </div>
+        <div>
+            <label className="block text-sm font-mono text-gray-400 mb-2">URL do pobrania</label>
+            <input
+                type="text"
+                value={formData.downloadUrl || ''}
+                onChange={(e) => setFormData({...formData, downloadUrl: e.target.value})}
+                className="w-full bg-kali-black border border-kali-border rounded px-4 py-2 text-white font-mono focus:outline-none focus:border-neon-green"
+                required
+            />
+        </div>
+        <div>
+            <label className="block text-sm font-mono text-gray-400 mb-2">Tagi (przecinek)</label>
+            <input
+                type="text"
+                value={formData.tags?.join(', ') || ''}
+                onChange={(e) => setFormData({...formData, tags: e.target.value.split(',').map(t => t.trim())})}
+                className="w-full bg-kali-black border border-kali-border rounded px-4 py-2 text-white font-mono focus:outline-none focus:border-neon-green"
+            />
+        </div>
+        <div className="flex gap-3">
+            <button
+                type="submit"
+                className="flex-1 font-mono px-4 py-2 bg-neon-green text-black rounded-lg hover:bg-neon-blue transition-colors"
+            >
+                Zapisz
+            </button>
+            <button
+                type="button"
+                onClick={onCancel}
+                className="flex-1 font-mono px-4 py-2 border border-neon-green text-neon-green rounded-lg hover:bg-neon-green hover:text-black transition-colors"
+            >
+                Anuluj
+            </button>
+        </div>
+    </form>
+);
+
+// Tutorial Form Component
+const TutorialForm = ({ formData, setFormData, onSave, onCancel }) => (
+    <form onSubmit={(e) => { e.preventDefault(); onSave(formData); }} className="space-y-4">
+        <div>
+            <label className="block text-sm font-mono text-gray-400 mb-2">Tytuł</label>
+            <input
+                type="text"
+                value={formData.title || ''}
+                onChange={(e) => setFormData({...formData, title: e.target.value})}
+                className="w-full bg-kali-black border border-kali-border rounded px-4 py-2 text-white font-mono focus:outline-none focus:border-neon-green"
+                required
+            />
+        </div>
+        <div>
+            <label className="block text-sm font-mono text-gray-400 mb-2">Opis</label>
+            <textarea
+                value={formData.excerpt || ''}
+                onChange={(e) => setFormData({...formData, excerpt: e.target.value})}
+                className="w-full bg-kali-black border border-kali-border rounded px-4 py-2 text-white font-mono focus:outline-none focus:border-neon-green"
+                rows="2"
+                required
+            />
+        </div>
+        <div>
+            <label className="block text-sm font-mono text-gray-400 mb-2">Treść (HTML)</label>
+            <textarea
+                value={formData.content || ''}
+                onChange={(e) => setFormData({...formData, content: e.target.value})}
+                className="w-full bg-kali-black border border-kali-border rounded px-4 py-2 text-white font-mono focus:outline-none focus:border-neon-green"
+                rows="6"
+                required
+            />
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+            <div>
+                <label className="block text-sm font-mono text-gray-400 mb-2">Kategoria</label>
+                <select
+                    value={formData.category || 'script'}
+                    onChange={(e) => setFormData({...formData, category: e.target.value})}
+                    className="w-full bg-kali-black border border-kali-border rounded px-4 py-2 text-white font-mono focus:outline-none focus:border-neon-green"
+                >
+                    <option value="bypass">Bypass</option>
+                    <option value="script">Script</option>
+                    <option value="bot">Bot</option>
+                    <option value="tool">Tool</option>
+                </select>
+            </div>
+            <div>
+                <label className="block text-sm font-mono text-gray-400 mb-2">Czy wyróżnić?</label>
+                <select
+                    value={formData.featured ? 'yes' : 'no'}
+                    onChange={(e) => setFormData({...formData, featured: e.target.value === 'yes'})}
+                    className="w-full bg-kali-black border border-kali-border rounded px-4 py-2 text-white font-mono focus:outline-none focus:border-neon-green"
+                >
+                    <option value="no">Nie</option>
+                    <option value="yes">Tak</option>
+                </select>
+            </div>
+        </div>
+        <div className="flex gap-3">
+            <button
+                type="submit"
+                className="flex-1 font-mono px-4 py-2 bg-neon-green text-black rounded-lg hover:bg-neon-blue transition-colors"
+            >
+                Zapisz
+            </button>
+            <button
+                type="button"
+                onClick={onCancel}
+                className="flex-1 font-mono px-4 py-2 border border-neon-green text-neon-green rounded-lg hover:bg-neon-green hover:text-black transition-colors"
+            >
+                Anuluj
+            </button>
+        </div>
+    </form>
+);
+
+// News Form Component
+const NewsForm = ({ formData, setFormData, onSave, onCancel }) => (
+    <form onSubmit={(e) => { e.preventDefault(); onSave(formData); }} className="space-y-4">
+        <div>
+            <label className="block text-sm font-mono text-gray-400 mb-2">Tytuł</label>
+            <input
+                type="text"
+                value={formData.title || ''}
+                onChange={(e) => setFormData({...formData, title: e.target.value})}
+                className="w-full bg-kali-black border border-kali-border rounded px-4 py-2 text-white font-mono focus:outline-none focus:border-neon-green"
+                required
+            />
+        </div>
+        <div>
+            <label className="block text-sm font-mono text-gray-400 mb-2">Opis</label>
+            <textarea
+                value={formData.excerpt || ''}
+                onChange={(e) => setFormData({...formData, excerpt: e.target.value})}
+                className="w-full bg-kali-black border border-kali-border rounded px-4 py-2 text-white font-mono focus:outline-none focus:border-neon-green"
+                rows="3"
+                required
+            />
+        </div>
+        <div>
+            <label className="block text-sm font-mono text-gray-400 mb-2">Treść</label>
+            <textarea
+                value={formData.content || ''}
+                onChange={(e) => setFormData({...formData, content: e.target.value})}
+                className="w-full bg-kali-black border border-kali-border rounded px-4 py-2 text-white font-mono focus:outline-none focus:border-neon-green"
+                rows="4"
+                required
+            />
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+            <div>
+                <label className="block text-sm font-mono text-gray-400 mb-2">Kategoria</label>
+                <select
+                    value={formData.category || 'update'}
+                    onChange={(e) => setFormData({...formData, category: e.target.value})}
+                    className="w-full bg-kali-black border border-kali-border rounded px-4 py-2 text-white font-mono focus:outline-none focus:border-neon-green"
+                >
+                    <option value="update">Aktualizacja</option>
+                    <option value="milestone">Kamień milowy</option>
+                    <option value="feature">Funkcja</option>
+                </select>
+            </div>
+            <div>
+                <label className="block text-sm font-mono text-gray-400 mb-2">Czy wyróżnić?</label>
+                <select
+                    value={formData.featured ? 'yes' : 'no'}
+                    onChange={(e) => setFormData({...formData, featured: e.target.value === 'yes'})}
+                    className="w-full bg-kali-black border border-kali-border rounded px-4 py-2 text-white font-mono focus:outline-none focus:border-neon-green"
+                >
+                    <option value="no">Nie</option>
+                    <option value="yes">Tak</option>
+                </select>
+            </div>
+        </div>
+        <div className="flex gap-3">
+            <button
+                type="submit"
+                className="flex-1 font-mono px-4 py-2 bg-neon-green text-black rounded-lg hover:bg-neon-blue transition-colors"
+            >
+                Zapisz
+            </button>
+            <button
+                type="button"
+                onClick={onCancel}
+                className="flex-1 font-mono px-4 py-2 border border-neon-green text-neon-green rounded-lg hover:bg-neon-green hover:text-black transition-colors"
+            >
+                Anuluj
+            </button>
+        </div>
+    </form>
 );
 
 // Matrix Rain Component
@@ -1705,13 +2393,21 @@ const App = () => {
     const [selectedTutorial, setSelectedTutorial] = React.useState(null);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
 
+    // Admin Auth
+    const { isAdmin, isAdminPanelOpen, setIsAdminPanelOpen, login, logout } = useAdminAuth();
+
+    // Data state
+    const [localScripts, setLocalScripts] = React.useState(scripts);
+    const [localTutorials, setLocalTutorials] = React.useState(tutorials);
+    const [localNews, setLocalNews] = React.useState(news);
+
     // Handle page routing
     const renderPage = () => {
         switch (currentPage) {
             case 'home':
                 return <HomePage setCurrentPage={setCurrentPage} setSelectedScript={setSelectedScript} setSelectedTutorial={setSelectedTutorial} />;
             case 'scripts':
-                return <ScriptsPage setCurrentPage={setCurrentPage} setSelectedScript={setSelectedScript} filteredScripts={scripts} />;
+                return <ScriptsPage setCurrentPage={setCurrentPage} setSelectedScript={setSelectedScript} filteredScripts={localScripts} />;
             case 'bypassy':
                 return <BypassyPage setCurrentPage={setCurrentPage} setSelectedScript={setSelectedScript} />;
             case 'free':
@@ -1730,6 +2426,56 @@ const App = () => {
                 return <NotFoundPage setCurrentPage={setCurrentPage} />;
         }
     };
+
+    // Scroll to top on page change
+    React.useEffect(() => {
+        window.scrollTo(0, 0);
+    }, [currentPage]);
+
+    return (
+        <div className="min-h-screen font-sans transition-all duration-500">
+            <Navbar
+                currentPage={currentPage}
+                setCurrentPage={setCurrentPage}
+                isMobileMenuOpen={isMobileMenuOpen}
+                setIsMobileMenuOpen={setIsMobileMenuOpen}
+            />
+
+            <main
+             className="page-enter">
+                {renderPage()}
+            </main>
+
+            <Footer
+                isAdmin={isAdmin}
+                isAdminPanelOpen={isAdminPanelOpen}
+                setIsAdminPanelOpen={setIsAdminPanelOpen}
+                logout={logout}
+            />
+
+            {/* Admin Login */}
+            <AdminLogin
+                isOpen={isAdminPanelOpen && !isAdmin}
+                onClose={() => setIsAdminPanelOpen(false)}
+                onLogin={login}
+            />
+
+            {/* Admin Dashboard */}
+            {isAdmin && (
+                <AdminDashboard
+                    isOpen={isAdminPanelOpen && isAdmin}
+                    onClose={() => setIsAdminPanelOpen(false)}
+                    scripts={localScripts}
+                    setScripts={setLocalScripts}
+                    tutorials={localTutorials}
+                    setTutorials={setLocalTutorials}
+                    news={localNews}
+                    setNews={setLocalNews}
+                />
+            )}
+        </div>
+    );
+};
 
     // Scroll to top on page change
     React.useEffect(() => {
