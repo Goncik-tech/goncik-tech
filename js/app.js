@@ -466,7 +466,6 @@ const AdminLogin = ({ isOpen, onClose, onLogin }) => {
         if (onLogin(password)) {
             setError('');
             setPassword('');
-            onClose();
         } else {
             setError('Nieprawidłowe hasło');
         }
