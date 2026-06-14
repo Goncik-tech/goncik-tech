@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Goncik-tech | Skrypty, Bypassy i Narzędzia AI</title>
+    <meta name="description" content="Darmowe i płatne skrypty, bypassy do AI i inne narzędzia">
+
+    <!-- React & ReactDOM via CDN -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+
+    <!-- Babel for JSX transformation -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- Tailwind CSS via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Tailwind Config -->
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        neon: {
+                            green: '#00ff41',
+                            blue: '#00d4ff',
+                            purple: '#bf00ff',
+                            pink: '#ff00ff',
+                        },
+                        kali: {
+                            black: '#0a0a0a',
+                            dark: '#111111',
+                            card: '#1a1a1a',
+                            border: '#2a2a2a',
+                        },
+                    },
+                    animation: {
+                        'glow': 'glow 2s ease-in-out infinite alternate',
+                        'matrix': 'matrix 20s linear infinite',
+                        'typing': 'typing 3s steps(30) infinite',
+                        'glitch': 'glitch 1s linear infinite',
+                    },
+                    keyframes: {
+                        glow: {
+                            '0%': { boxShadow: '0 0 5px #00ff41, 0 0 10px #00ff41' },
+                            '100%': { boxShadow: '0 0 20px #00ff41, 0 0 40px #00ff41' },
+                        },
+                        matrix: {
+                            '0%': { transform: 'translateY(-100%)' },
+                            '100%': { transform: 'translateY(100%)' },
+                        },
+                        typing: {
+                            '0%, 100%': { width: '0' },
+                            '50%': { width: '100%' },
+                        },
+                        glitch: {
+                            '2%, 64%': { transform: 'translate(2px,0) skew(0deg)' },
+                            '4%, 60%': { transform: 'translate(-2px,0) skew(0deg)' },
+                            '62%': { transform: 'translate(0,0) skew(5deg)' },
+                        },
+                    },
+                },
+            },
+        }
+    </script>
+
+    <!-- Global Styles -->
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0a0a0a;
+            color: #e0e0e0;
+            overflow-x: hidden;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #0a0a0a;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #00ff41;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #00d4ff;
+        }
+
+        /* Neon Glow Effects */
+        .neon-text {
+            text-shadow: 0 0 10px #00ff41, 0 0 20px #00ff41, 0 0 30px #00ff41;
+        }
+
+        .neon-border {
+            box-shadow: 0 0 5px #00ff41, 0 0 10px #00ff41, inset 0 0 5px rgba(0, 255, 65, 0.1);
+        }
+
+        .glass-effect {
+            background: rgba(26, 26, 26, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(0, 255, 65, 0.2);
+        }
+
+        /* Glitch Effect */
+        .glitch-effect:hover {
+            animation: glitch 0.3s infinite;
+        }
+
+        /* Matrix Rain Canvas */
+        #matrix-rain {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            opacity: 0.3;
+        }
+
+        /* Loader */
+        .loader {
+            border: 2px solid #1a1a1a;
+            border-top: 2px solid #00ff41;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Scroll Reveal Animation */
+        .reveal {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.6s ease-out;
+        }
+
+        .reveal.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Typing Cursor */
+        .typing-cursor::after {
+            content: '|';
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
+        }
+
+        /* Page Transition */
+        .page-enter {
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Matrix Rain Canvas -->
+    <canvas id="matrix-rain"></canvas>
+
+    <!-- React Root -->
+    <div id="root"></div>
+
+    <!-- Debug console -->
+    <script>
+        console.log('=== Goncik-tech Debug ===');
+        console.log('Loading data.js...');
+    </script>
+
+    <!-- Data Script (must load before app.js) -->
+    <script src="js/data.js"></script>
+
+    <!-- Debug after data -->
+    <script>
+        console.log('data.js loaded:', window.data ? 'OK' : 'FAILED');
+        if (window.data) {
+            console.log('Scripts:', window.data.scripts?.length);
+            console.log('Tutorials:', window.data.tutorials?.length);
+            console.log('News:', window.data.news?.length);
+        }
+    </script>
+
+    <!-- Main App Script -->
+    <script type="text/babel" src="js/app.js"></script>
+
+    <!-- Debug final -->
+    <script>
+        console.log('App.js loaded');
+        console.log('React available:', typeof React !== 'undefined');
+        console.log('ReactDOM available:', typeof ReactDOM !== 'undefined');
+    </script>
+</body>
+</html>

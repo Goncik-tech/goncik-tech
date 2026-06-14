@@ -1,0 +1,43 @@
+# Backup files
+js/app.js.backup
+fix_framer_motion.ps1
+convert_jsx_to_js.ps1
+*.log
+server.log
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Node (na przyszłość)
+node_modules/
+dist/
+.vite/
+.next/
+
+# System
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Build
+build/
+out/
+
+# Test
+coverage/
+.nyc_output/
+
+# Temp
+*.tmp
+*.temp

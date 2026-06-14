@@ -1,0 +1,10 @@
+{
+  "name": "goncik-tech",
+  "version": "1.0.0",
+  "description": "Goncik-tech - scripts, bypasses, and AI tools",
+  "scripts": {
+    "start": "start index.html"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}
