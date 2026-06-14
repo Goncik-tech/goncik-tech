@@ -2765,30 +2765,6 @@ const App = () => {
     );
 };
 
-    // Scroll to top on page change
-    React.useEffect(() => {
-        window.scrollTo(0, 0);
-    }, [currentPage]);
-
-    return (
-        <div className="min-h-screen font-sans transition-all duration-500">
-            <Navbar
-                currentPage={currentPage}
-                setCurrentPage={setCurrentPage}
-                isMobileMenuOpen={isMobileMenuOpen}
-                setIsMobileMenuOpen={setIsMobileMenuOpen}
-            />
-
-            <main
-             className="page-enter">
-                {renderPage()}
-            </main>
-
-            {currentPage !== 'home' && <Footer />}
-        </div>
-    );
-};
-
 // ============================================
 // RENDER APP
 // ============================================
