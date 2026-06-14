@@ -391,6 +391,66 @@ function useAdminAuth() {
     return { isAdmin, isAdminPanelOpen, setIsAdminPanelOpen, login, logout };
 }
 
+// Messages Hook - do zarządzania wiadomościami z kontaktu
+function useMessages() {
+    const [messages, setMessages] = React.useState([]);
+
+    React.useEffect(() => {
+        const storedMessages = localStorage.getItem('adminMessages');
+        if (storedMessages) {
+            setMessages(JSON.parse(storedMessages));
+        }
+    }, []);
+
+    const addMessage = (message) => {
+        const newMessage = {
+            id: Date.now(),
+            ...message,
+            timestamp: new Date().toISOString(),
+            status: 'unread',
+            replies: []
+        };
+        const updatedMessages = [newMessage, ...messages];
+        setMessages(updatedMessages);
+        localStorage.setItem('adminMessages', JSON.stringify(updatedMessages));
+        return newMessage;
+    };
+
+    const markAsRead = (messageId) => {
+        const updatedMessages = messages.map(msg =>
+            msg.id === messageId ? { ...msg, status: 'read' } : msg
+        );
+        setMessages(updatedMessages);
+        localStorage.setItem('adminMessages', JSON.stringify(updatedMessages));
+    };
+
+    const addReply = (messageId, reply) => {
+        const newReply = {
+            id: Date.now(),
+            text: reply,
+            timestamp: new Date().toISOString(),
+            isAdmin: true
+        };
+
+        const updatedMessages = messages.map(msg =>
+            msg.id === messageId
+                ? { ...msg, replies: [...msg.replies, newReply], status: 'replied' }
+                : msg
+        );
+
+        setMessages(updatedMessages);
+        localStorage.setItem('adminMessages', JSON.stringify(updatedMessages));
+    };
+
+    const deleteMessage = (messageId) => {
+        const updatedMessages = messages.filter(msg => msg.id !== messageId);
+        setMessages(updatedMessages);
+        localStorage.setItem('adminMessages', JSON.stringify(updatedMessages));
+    };
+
+    return { messages, addMessage, markAsRead, addReply, deleteMessage };
+}
+
 // Admin Login Component
 const AdminLogin = ({ isOpen, onClose, onLogin }) => {
     const [password, setPassword] = React.useState('');
@@ -474,6 +534,11 @@ const AdminDashboard = ({ isOpen, onClose, scripts, setScripts, tutorials, setTu
     const [editedItem, setEditedItem] = React.useState(null);
     const [showAddForm, setShowAddForm] = React.useState(false);
     const [formData, setFormData] = React.useState({});
+    const [selectedMessage, setSelectedMessage] = React.useState(null);
+    const [replyText, setReplyText] = React.useState('');
+
+    // Messages hook
+    const { messages, markAsRead, addReply, deleteMessage } = useMessages();
 
     if (!isOpen) return null;
 
@@ -517,6 +582,24 @@ const AdminDashboard = ({ isOpen, onClose, scripts, setScripts, tutorials, setTu
         };
 
         const collections = {
+            scripts: scripts,
+            tutorials: tutorials,
+            news: news
+        };
+
+        const updatedCollection = collections[itemType].filter(item => item.id !== id);
+        setters[itemType](updatedCollection);
+    };
+
+    const handleReply = () => {
+        if (!replyText.trim()) return;
+
+        addReply(selectedMessage.id, replyText);
+        setReplyText('');
+        setSelectedMessage(null);
+    };
+
+    const unreadCount = messages.filter(m => m.status === 'unread').length;
             scripts: scripts,
             tutorials: tutorials,
             news: news
@@ -710,6 +793,25 @@ const AdminDashboard = ({ isOpen, onClose, scripts, setScripts, tutorials, setTu
                         >
                             Aktualności
                         </button>
+                        <button
+                            onClick={() => {
+                                setActiveTab('messages');
+                                setShowAddForm(false);
+                                setEditedItem(null);
+                            }}
+                            className={`w-full text-left px-4 py-3 rounded-lg font-mono text-sm transition-colors relative ${
+                                activeTab === 'messages'
+                                    ? 'bg-neon-green text-black'
+                                    : 'text-gray-300 hover:bg-kali-border'
+                            }`}
+                        >
+                            Wiadomości
+                            {unreadCount > 0 && (
+                                <span className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                                    {unreadCount}
+                                </span>
+                            )}
+                        </button>
                     </div>
 
                     {/* Content */}
@@ -755,7 +857,7 @@ const AdminDashboard = ({ isOpen, onClose, scripts, setScripts, tutorials, setTu
                                 {renderItemsList(tutorials, 'tutorials')}
                             </div>
                         )}
-                        {activeTab === 'news' && (
+                         {activeTab === 'news' && (
                             <div>
                                 <div className="flex items-center justify-between mb-6">
                                     <h3 className="font-mono text-2xl font-bold text-neon-green">
@@ -773,6 +875,178 @@ const AdminDashboard = ({ isOpen, onClose, scripts, setScripts, tutorials, setTu
                                     </button>
                                 </div>
                                 {renderItemsList(news, 'news')}
+                            </div>
+                        )}
+                        {activeTab === 'messages' && (
+                            <div>
+                                <div className="flex items-center justify-between mb-6">
+                                    <h3 className="font-mono text-2xl font-bold text-neon-green">
+                                        Wiadomości
+                                    </h3>
+                                    <div className="text-sm text-gray-400">
+                                        {messages.filter(m => m.status === 'unread').length} nieprzeczytanych
+                                    </div>
+                                </div>
+
+                                {messages.length === 0 ? (
+                                    <div className="glass-effect p-12 rounded-lg text-center">
+                                        <p className="text-gray-400 font-mono">
+                                            Brak wiadomości
+                                        </p>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-4">
+                                        {messages.map((message) => (
+                                            <div
+                                                key={message.id}
+                                                className={`glass-effect p-4 rounded-lg cursor-pointer transition-all ${
+                                                    message.status === 'unread' ? 'border-l-4 border-l-neon-green' : ''
+                                                }`}
+                                                onClick={() => {
+                                                    if (message.status === 'unread') {
+                                                        markAsRead(message.id);
+                                                    }
+                                                    setSelectedMessage(message);
+                                                }}
+                                            >
+                                                <div className="flex items-start justify-between mb-3">
+                                                    <div className="flex-1">
+                                                        <div className="flex items-center gap-2 mb-2">
+                                                            <span className="font-mono font-bold text-white">
+                                                                {message.name}
+                                                            </span>
+                                                            <span className="text-gray-500 text-sm">
+                                                                {new Date(message.timestamp).toLocaleString('pl-PL')}
+                                                            </span>
+                                                            {message.status === 'unread' && (
+                                                                <span className="px-2 py-1 text-xs bg-neon-green text-black rounded-full">
+                                                                    Nowa
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <p className="text-gray-400 text-sm mb-2">
+                                                            {message.email}
+                                                        </p>
+                                                        <p className="text-gray-300 font-mono text-sm mb-1">
+                                                            {message.subject}
+                                                        </p>
+                                                    </div>
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            deleteMessage(message.id);
+                                                        }}
+                                                        className="text-red-500 hover:text-red-400 transition-colors"
+                                                    >
+                                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                            <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                                                        </svg>
+                                                    </button>
+                                                </div>
+
+                                                <p className="text-gray-400 text-sm line-clamp-2">
+                                                    {message.message}
+                                                </p>
+
+                                                {message.replies && message.replies.length > 0 && (
+                                                    <div className="mt-4 space-y-2">
+                                                        {message.replies.map((reply) => (
+                                                            <div
+                                                                key={reply.id}
+                                                                className="bg-kali-black p-3 rounded border-l-2 border-neon-blue"
+                                                            >
+                                                                <div className="flex items-center gap-2 mb-1">
+                                                                    <span className="text-neon-blue font-mono text-xs">
+                                                                        Admin
+                                                                    </span>
+                                                                    <span className="text-gray-500 text-xs">
+                                                                        {new Date(reply.timestamp).toLocaleString('pl-PL')}
+                                                                    </span>
+                                                                </div>
+                                                                <p className="text-gray-300 text-sm">
+                                                                    {reply.text}
+                                                                </p>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+
+                                {/* Message Detail */}
+                                {selectedMessage && (
+                                    <div className="glass-effect p-6 rounded-lg mt-4">
+                                        <div className="flex items-center justify-between mb-4">
+                                            <h3 className="font-mono text-xl font-bold text-neon-green">
+                                                Szczegóły wiadomości
+                                            </h3>
+                                            <button
+                                                onClick={() => setSelectedMessage(null)}
+                                                className="text-gray-400 hover:text-white transition-colors"
+                                            >
+                                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                    <path d="M18 6L6 18M6 6l12 12" />
+                                                </svg>
+                                            </button>
+                                        </div>
+
+                                        <div className="space-y-4">
+                                            <div>
+                                                <span className="text-gray-400 text-sm">Od:</span>
+                                                <span className="text-white font-mono ml-2">{selectedMessage.name}</span>
+                                                <span className="text-gray-500 text-sm ml-4">({selectedMessage.email})</span>
+                                            </div>
+                                            <div>
+                                                <span className="text-gray-400 text-sm">Temat:</span>
+                                                <span className="text-white font-mono ml-2">{selectedMessage.subject}</span>
+                                            </div>
+                                            <div>
+                                                <span className="text-gray-400 text-sm">Data:</span>
+                                                <span className="text-gray-500 text-sm ml-2">
+                                                    {new Date(selectedMessage.timestamp).toLocaleString('pl-PL')}
+                                                </span>
+                                            </div>
+                                            <div className="bg-kali-black p-4 rounded">
+                                                <span className="text-gray-400 text-sm">Wiadomość:</span>
+                                                <p className="text-gray-300 mt-2">{selectedMessage.message}</p>
+                                            </div>
+                                        </div>
+
+                                        <div className="mt-6">
+                                            <h4 className="font-mono text-sm font-bold text-neon-green mb-3">
+                                                Odpowiedz
+                                            </h4>
+                                            <div className="space-y-4">
+                                                <textarea
+                                                    value={replyText}
+                                                    onChange={(e) => setReplyText(e.target.value)}
+                                                    placeholder="Napisz odpowiedź..."
+                                                    className="w-full bg-kali-black border border-kali-border rounded px-4 py-3 text-white font-mono focus:outline-none focus:border-neon-green"
+                                                    rows="4"
+                                                />
+                                                <div className="flex gap-3">
+                                                    <button
+                                                        onClick={handleReply}
+                                                        className="flex-1 font-mono px-4 py-3 bg-neon-green text-black rounded-lg hover:bg-neon-blue transition-colors"
+                                                    >
+                                                        Wyślij odpowiedź
+                                                    </button>
+                                                    <button
+                                                        onClick={() => {
+                                                            setSelectedMessage(null);
+                                                            setReplyText('');
+                                                        }}
+                                                        className="flex-1 font-mono px-4 py-3 border border-neon-green text-neon-green rounded-lg hover:bg-neon-green hover:text-black transition-colors"
+                                                    >
+                                                        Anuluj
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>
@@ -2161,7 +2435,7 @@ const NewsPage = ({ setCurrentPage }) => {
 };
 
 // Contact Page
-const ContactPage = ({ setCurrentPage }) => {
+const ContactPage = ({ setCurrentPage, addMessage }) => {
     const [formData, setFormData] = React.useState({
         name: '',
         email: '',
@@ -2175,16 +2449,27 @@ const ContactPage = ({ setCurrentPage }) => {
         e.preventDefault();
         setIsSubmitting(true);
 
-        // Simulate sending email (in production, use EmailJS)
-        await new Promise(resolve => setTimeout(resolve, 1500));
+        try {
+            // Próba wysłania wiadomości do localStorage (dla admina)
+            const newMessage = addMessage(formData);
 
-        setSubmitStatus('success');
-        setFormData({ name: '', email: '', subject: '', message: '' });
+            // Symulacja wysyłania emaila (dla użytkownika)
+            await new Promise(resolve => setTimeout(resolve, 1500));
 
-        setTimeout(() => {
-            setSubmitStatus(null);
+            setSubmitStatus('success');
+            setFormData({ name: '', email: '', subject: '', message: '' });
+
+            setTimeout(() => {
+                setSubmitStatus(null);
+                setIsSubmitting(false);
+            }, 3000);
+        } catch (error) {
+            setSubmitStatus('error');
             setIsSubmitting(false);
-        }, 3000);
+            setTimeout(() => {
+                setSubmitStatus(null);
+            }, 3000);
+        }
     };
 
     return (
@@ -2207,11 +2492,19 @@ const ContactPage = ({ setCurrentPage }) => {
                     <div
                         className="glass-effect rounded-lg p-8 transition-all duration-500"
                     >
-                        {submitStatus === 'success' && (
+                         {submitStatus === 'success' && (
                             <div
                                 className="mb-6 p-4 bg-neon-green/10 border border-neon-green rounded text-neon-green font-mono text-sm transition-all duration-500"
                             >
                                 Wiadomość została wysłana! Odpowiemy wkrótce.
+                            </div>
+                        )}
+
+                        {submitStatus === 'error' && (
+                            <div
+                                className="mb-6 p-4 bg-red-500/10 border border-red-500 rounded text-red-500 font-mono text-sm transition-all duration-500"
+                            >
+                                Wystąpił błąd podczas wysyłania. Spróbuj ponownie.
                             </div>
                         )}
 
@@ -2396,6 +2689,9 @@ const App = () => {
     // Admin Auth
     const { isAdmin, isAdminPanelOpen, setIsAdminPanelOpen, login, logout } = useAdminAuth();
 
+    // Messages hook
+    const { addMessage } = useMessages();
+
     // Data state
     const [localScripts, setLocalScripts] = React.useState(scripts);
     const [localTutorials, setLocalTutorials] = React.useState(tutorials);
@@ -2421,7 +2717,7 @@ const App = () => {
             case 'news':
                 return <NewsPage setCurrentPage={setCurrentPage} />;
             case 'contact':
-                return <ContactPage setCurrentPage={setCurrentPage} />;
+                return <ContactPage setCurrentPage={setCurrentPage} addMessage={addMessage} />;
             default:
                 return <NotFoundPage setCurrentPage={setCurrentPage} />;
         }
