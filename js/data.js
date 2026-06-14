@@ -181,129 +181,15 @@ pip install -r requirements.txt</code></pre>
         date: "2024-06-10",
         readTime: "10 min",
         featured: true
-    },
-    {
-        id: 2,
-        title: "Discord Token Generator - Kompletny przewodnik",
-        excerpt: "Poznaj wszystkie funkcje Discord Token Generator, od podstaw do zaawansowanych ustawień.",
-        content: `
-            <h3>Wstęp</h3>
-            <p>Discord Token Generator to potężne narzędzie do generowania i walidacji tokenów Discord.</p>
-
-            <h3>Podstawy</h3>
-            <p>Tokeny Discord to klucze uwierzytelniające pozwalające na dostęp do konta bez hasła.</p>
-
-            <h3>Instalacja</h3>
-            <pre><code>git clone https://github.com/goncik-tech/discord-token-gen
-cd discord-token-gen
-npm install</code></pre>
-
-            <h3>Konfiguracja</h3>
-            <p>Skonfiguruj proxy i ustawienia w pliku config.json:</p>
-            <pre><code>{
-    "proxy_file": "proxies.txt",
-    "thread_count": 10,
-    "output_format": "json"
-}</code></pre>
-
-            <h3>Uruchomienie</h3>
-            <pre><code>npm start</code></pre>
-
-            <h3>Wskazówki</h3>
-            <ul>
-                <li>Używaj prywatnych proxy</li>
-                <li>Monitoruj logi w czasie rzeczywistym</li>
-                <li>Eksportuj wyniki do bezpiecznego formatu</li>
-            </ul>
-        `,
-        category: "script",
-        tags: ["Discord", "Token", "Tutorial", "Generator"],
-        author: "Goncik",
-        date: "2024-06-08",
-        readTime: "15 min",
-        featured: true
-    },
-    {
-        id: 3,
-        title: "Account Checker - Optymalizacja wydajności",
-        excerpt: "Jak maksymalnie przyspieszyć sprawdzanie kont i uzyskać najlepsze wyniki z Account Checker Ultimate.",
-        content: `
-            <h3>Wstęp</h3>
-            <p>Account Checker Ultimate to wszechstronne narzędzie do sprawdzania kont z różnych serwisów.</p>
-
-            <h3>Optymalizacja wydajności</h3>
-            <p>Aby uzyskać najlepszą wydajność, skoncentruj się na:</p>
-            <ul>
-                <li>Użyciu prywatnych proxy</li>
-                <li>Poprawnym thread count</li>
-                <li>Regularnej aktualizacji</li>
-            </ul>
-
-            <h3>Konfiguracja proxy</h3>
-            <pre><code>{
-    "proxies": [
-        "proxy1:port:user:pass",
-        "proxy2:port:user:pass"
-    ],
-    "threads": 50
-}</code></pre>
-
-            <h3>Monitorowanie</h3>
-            <p>Regularnie monitoruj statystyki i logi, aby zoptymalizować proces.</p>
-
-            <h3>Wskazówki</h3>
-            <ul>
-                <li>Używaj rotacji proxy</li>
-                <li>Dostosuj thread count do zasobów</li>
-                <li>Aktualizuj narzędzie regularnie</li>
-            </ul>
-        `,
-        category: "script",
-        tags: ["Account", "Checker", "Performance", "Tutorial"],
-        author: "Goncik",
-        date: "2024-06-05",
-        readTime: "12 min",
-        featured: false
-    },
-    {
-        id: 4,
-        title: "Spotify Premium Bot - Instalacja i konfiguracja",
-        excerpt: "Szczegółowy przewodnik jak skonfigurować Spotify Premium Bot do automatycznego dodawania kont premium.",
-        content: `
-            <h3>Wstęp</h3>
-            <p>Spotify Premium Bot automatyzuje proces dodawania kont premium Spotify.</p>
-
-            <h3>Instalacja</h3>
-            <pre><code>git clone https://github.com/goncik-tech/spotify-bot
-cd spotify-bot
-npm install</code></pre>
-
-            <h3>Konfiguracja</h3>
-            <p>Skonfiguruj bot w pliku config.json:</p>
-            <pre><code>{
-    "spotify_api": "twój_klucz",
-    "proxy_list": "proxies.txt",
-    "accounts_file": "accounts.txt"
-}</code></pre>
-
-            <h3>Uruchomienie</h3>
-            <pre><code>npm start</code></pre>
-
-            <h3>Wskazówki</h3>
-            <ul>
-                <li>Używaj prywatnych proxy</li>
-                <li>Regularnie sprawdzaj logi</li>
-                <li>Aktualizuj bota</li>
-            </ul>
-        `,
-        category: "bot",
-        tags: ["Spotify", "Premium", "Bot", "Tutorial"],
-        author: "Goncik",
-        date: "2024-06-12",
-        readTime: "8 min",
-        featured: false
     }
 ];
+
+// Store data globally so app.js can access it
+window.data = {
+    scripts: scripts,
+    tutorials: tutorials,
+    news: news
+};
 
 export const news = [
     {
