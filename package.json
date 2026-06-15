@@ -1,10 +1,15 @@
 {
   "name": "goncik-tech",
-  "version": "1.0.0",
-  "description": "Goncik-tech - scripts, bypasses, and AI tools",
+  "version": "3.0.0",
+  "description": "Goncik-tech - scripts, bypasses, and AI tools (React + Python backend)",
   "scripts": {
-    "start": "start index.html"
+    "start": "python server_api.py",
+    "start:win": "START.bat",
+    "start:ps": "powershell -ExecutionPolicy Bypass -File StartGoncikTech.ps1"
   },
   "dependencies": {},
-  "devDependencies": {}
+  "devDependencies": {},
+  "engines": {
+    "python": ">=3.8"
+  }
 }

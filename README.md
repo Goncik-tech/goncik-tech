@@ -1,268 +1,189 @@
-# Goncik-tech 🚀
+# Goncik-tech
 
-**Nowoczesna strona do udostępniania skryptów, bypassów AI i narzędzi**
-
-Projekt w stylu Kali Linux — ciemny motyw z neonowymi akcentami, Matrix rain w tle i płynnymi animacjami.
-
----
-
-## 🎨 Design System
-
-- **Tło:** Głęboka czerń `#0a0a0a` z subtelnymi gradientami
-- **Kolor akcentowy:** Neon green `#00ff41` + Electric blue `#00d4ff`
-- **Efekty:** Glassmorphism, neon glow, glitch hover, typing animation
-- **Czcionki:** `JetBrains Mono` (monospace/hacker feel) + `Inter` (body)
-- **Animacje:** Matrix rain canvas, typing animation, scroll-reveal, page transitions
+Nowoczesna strona w stylu cyberpunk do udostępniania skryptów, bypassów AI i narzędzi.
+React 18 + Tailwind CSS + lekki serwer Python z zapisem danych.
 
 ---
 
-## 📄 Struktura strony
+## Funkcje
+
+- **Hero** z animacją Matrix rain w tle
+- **Skrypty, Bypassy, Darmowe** — z filtrami (kategoria, cena, wyszukiwarka)
+- **Tutoriale** — pełne artykuły z HTML-em
+- **Aktualności** — lista newsów z kategoriami
+- **Kontakt** — formularz z lokalnym zapisem wiadomości
+- **Panel admina** — pełne CRUD na skryptach, tutorialach, newsach + odpowiedzi na wiadomości
+- **Zapis do bazy** — każda zmiana w panelu admina automatycznie zapisuje się do pliku `js/data.js`
+- **Status API** — wskaźnik online/offline widoczny w navbarze i stopce
+- **Toast notifications** — informacje zwrotne po każdej akcji
+
+---
+
+## Uruchomienie
+
+### Wymagania
+- Python 3.8+
+- Przeglądarka (Chrome 90+, Firefox 88+, Edge 90+, Safari 14+)
+
+### Sposób 1 — PowerShell (zalecany)
+```powershell
+cd "C:\Users\Ignacy\Documents\OPEN_CODE_CTO_AI"
+.\StartGoncikTech.ps1
+```
+Wybierz `S` (start) lub `O` (otwórz w przeglądarce).
+
+### Sposób 2 — Skrypt .bat
+```cmd
+cd C:\Users\Ignacy\Documents\OPEN_CODE_CTO_AI
+START.bat
+```
+
+### Sposób 3 — Ręcznie
+```powershell
+cd "C:\Users\Ignacy\Documents\OPEN_CODE_CTO_AI"
+python server_api.py
+```
+
+Strona działa pod adresem **http://localhost:8000**.
+
+---
+
+## Panel admina
+
+1. Otwórz stronę i kliknij **"Admin"** (navbar / stopka).
+2. Wpisz hasło: **`goncik123`**
+3. Zaloguj się — masz dostęp do pełnego panelu z zakładkami:
+   - **Overview** — statystyki i opis
+   - **Skrypty / Tutoriale / Aktualności** — lista + przyciski `+ Dodaj`, edycja, usuwanie
+   - **Wiadomości** — odczyt, odpowiedzi, usuwanie
+4. **Każda zmiana zapisuje się automatycznie** do pliku `js/data.js` przez endpoint `POST /api/save`.
+
+> Zmiana hasła: edytuj stałą `ADMIN_PASSWORD` w `js/app.js` (linia ~31).
+
+---
+
+## Struktura projektu
 
 ```
-/              → Hero + polecane skrypty
-/scripts       → Wszystkie skrypty (z filtrowaniem)
-/scripts/:id   → Szczegóły skryptu
-/bypassy       → Filtrowane: kategoria bypassów AI
-/free          → Tylko darmowe
-/tutorials     → Blog / poradniki
-/tutorials/:id → Pojedynczy tutorial
-/news          → Aktualności
-/contact       → Formularz kontaktowy
-/*             → Stylowa strona 404
+OPEN_CODE_CTO_AI/
+├── server_api.py          # Serwer Python (HTTP + API zapisu)
+├── index.html             # Punkt wejścia (HTML + Tailwind config + style)
+├── package.json           # Metadane projektu
+├── README.md              # Ten plik
+├── START.bat              # Launcher CMD (start + przeglądarka)
+├── StartGoncikTech.ps1    # Launcher PowerShell (menu)
+├── quick_start.ps1        # Launcher PowerShell (auto-open)
+├── start_server.bat       # Prosty launcher CMD
+├── 404.html               # Strona błędu 404
+└── js/
+    ├── app.js             # Cała aplikacja React
+    ├── data.js            # Baza danych (skrypty/tutoriale/newsy) — zapisywana przez API
+    └── data.backup.js     # Kopia zapasowa (tworzona automatycznie)
 ```
 
 ---
 
-## 🚀 Jak uruchomić
+## Architektura
 
-### Metoda 1: Otwórz bezpośrednio (najprostsza)
+### Frontend (`js/app.js`)
+- React 18 (UMD, bez bundlera)
+- Babel Standalone — kompilacja JSX w locie
+- Tailwind CSS (CDN) — utility classes
+- Wszystko w jednym pliku, podzielone na sekcje:
+  1. Data layer + API client
+  2. Toast system
+  3. Hooks (`useScrollReveal`, `useServerStatus`, `useAdminAuth`, `useMessages`)
+  4. Matrix rain canvas
+  5. UI primitives
+  6. Navbar + Footer
+  7. Pages (Home, Scripts, Tutorials, News, Contact, 404)
+  8. Admin panel (login + dashboard)
+  9. Główny `App`
 
-Po prostu otwórz `index.html` w przeglądarce:
+### Backend (`server_api.py`)
+- Wbudowany `http.server` Pythona — zero zależności
+- Serwuje pliki statyczne
+- Endpoint `POST /api/save` — przyjmuje JSON `{scripts, tutorials, news}`, waliduje i zapisuje do `js/data.js`
+- Endpoint `POST /api/reset` — przywraca dane z `data.backup.js`
+- Endpoint `GET /api/status` — zwraca status serwera
 
-1. Kliknij dwukrotnie `index.html`
-2. Lub przeciągnij `index.html` do okna przeglądarki
-
-### Metoda 2: Użyj Live Server (VS Code)
-
-Jeśli masz VS Code:
-
-1. Zainstaluj rozszerzenie "Live Server"
-2. Kliknij prawym przyciskiem na `index.html`
-3. Wybierz "Open with Live Server"
-
-### Metoda 3: Python SimpleHTTPServer
-
-Jeśli masz Python:
-
-```bash
-# Python 3
-python -m http.server 8000
-
-# Python 2
-python -m SimpleHTTPServer 8000
-```
-
-Otwórz: `http://localhost:8000`
-
-### Metoda 4: Node.js http-server
-
-Jeśli masz Node.js:
-
-```bash
-npx http-server
-```
-
-Otwórz: `http://localhost:8080`
+### Dlaczego własny serwer?
+Standardowy `python -m http.server` potrafi tylko serwować pliki — nie zapisuje zmian.
+`server_api.py` dodaje brakujący kawałek: endpoint, który przyjmuje dane z frontendu
+i nadpisuje plik `js/data.js`. Dzięki temu zmiany w panelu admina **przetrwają odświeżenie strony**.
 
 ---
 
-## 📝 Edytowanie danych
+## API
 
-### Dodawanie skryptów
+### `POST /api/save`
+Zapisuje dane do `js/data.js`.
 
-Edytuj `js/data.js` w sekcji `scripts`:
-
-```javascript
+**Body:**
+```json
 {
-    id: 7, // Unikalne ID
-    name: "Twój Skrypt",
-    description: "Opis skryptu...",
-    category: "bypass", // bypass, script, bot, tool, generator
-    tags: ["Tag1", "Tag2", "Tag3"],
-    features: [
-        "Funkcja 1",
-        "Funkcja 2"
-    ],
-    downloadUrl: "https://github.com/twoj-repo",
-    isFree: true, // true = FREE, false = PREMIUM
-    downloads: 0,
-    rating: 5.0,
-    lastUpdated: "2024-06-14",
-    version: "1.0.0",
-    author: "Twoje Imię",
-    requirements: ["Python 3.8+", "pip install"]
+  "scripts":   [...],
+  "tutorials": [...],
+  "news":      [...]
 }
 ```
 
-### Dodawanie tutoriale
-
-Edytuj `js/data.js` w sekcji `tutorials`:
-
-```javascript
-{
-    id: 5,
-    title: "Twój Tutorial",
-    excerpt: "Krótki opis...",
-    content: `
-        <h3>Tytuł sekcji</h3>
-        <p>Treść...</p>
-        <pre><code>Kod...</code></pre>
-    `,
-    category: "script", // bypass, script, bot, tool
-    tags: ["Tag1", "Tag2"],
-    author: "Autor",
-    date: "2024-06-14",
-    readTime: "10 min",
-    featured: true // true = pokaż na stronie głównej
-}
+**Odpowiedź:**
+```json
+{ "ok": true, "saved": { "scripts": 6, "tutorials": 2, "news": 4 }, "path": "..." }
 ```
 
-### Dodawanie aktualności
+### `GET /api/status`
+Zwraca informacje o serwerze.
 
-Edytuj `js/data.js` w sekcji `news`:
-
-```javascript
-{
-    id: 5,
-    title: "Nowa aktualizacja",
-    excerpt: "Opis...",
-    content: "Pełna treść...",
-    category: "update", // update, milestone
-    author: "Autor",
-    date: "2024-06-14",
-    featured: true // true = wyróżnione
-}
-```
+### `POST /api/reset`
+Przywraca dane z `data.backup.js`.
 
 ---
 
-## 🎨 Customizacja
+## Deploy
 
-### Zmiana kolorów
+### Netlify / Vercel / GitHub Pages
+Strona jest w pełni statyczna — po zdeployowaniu **panel admina działa w trybie localStorage**
+(pojedynczy użytkownik, brak zapisu na serwer). Aby uzyskać pełny zapis, deploy musi
+wspierać Python (np. Railway, Render, Fly.io) — wtedy trzeba dostosować URL API w `js/app.js`.
 
+### Lokalnie (dev)
+Użyj `server_api.py` — pełna funkcjonalność z zapisem.
+
+---
+
+## Customizacja
+
+### Kolory neon
 Edytuj `tailwind.config` w `index.html`:
-
-```javascript
-theme: {
-    extend: {
-        colors: {
-            neon: {
-                green: '#00ff41', // Twój zielony
-                blue: '#00d4ff',   // Twój niebieski
-                // dodaj więcej...
-            },
-        },
-    },
+```js
+colors: {
+    neon: {
+        green: '#00ff41',
+        blue:  '#00d4ff',
+        purple:'#bf00ff',
+        pink:  '#ff00ff',
+        yellow:'#f5d300',
+    }
 }
 ```
 
-### Zmiana czcionek
-
-Edytuj linki Google Fonts w `index.html` i zmień `fontFamily` w `tailwind.config`:
-
-```html
-<link href="https://fonts.googleapis.com/css2?family=Twoja+Czcionka&display=swap" rel="stylesheet">
+### Hasło admina
+Edytuj `js/app.js`:
+```js
+const ADMIN_PASSWORD = 'goncik123';
 ```
 
-```javascript
-theme: {
-    extend: {
-        fontFamily: {
-            sans: ['Twoja Czcionka', 'sans-serif'],
-            mono: ['Twoja Czcionka Mono', 'monospace'],
-        },
-    },
-}
-```
+### Port serwera
+Edytuj `server_api.py` (stała `PORT = 8000`) i `StartGoncikTech.ps1` (zmienna `$port`).
 
 ---
 
-## 🌐 Deploy
+## Licencja
 
-### Netlify (najprostszy)
-
-1. Prześlij folder projektu do GitHub
-2. Zaloguj się na Netlify
-3. "New site from Git"
-4. Wybierz repozytorium
-5. Deploy!
-
-### Vercel
-
-1. Prześlij folder projektu do GitHub
-2. Zaloguj się na Vercel
-3. "New Project"
-4. Wybierz repozytorium
-5. Deploy!
-
-### GitHub Pages
-
-1. Prześlij folder do GitHub
-2. Idź do Settings → Pages
-3. Wybierz branch (np. main)
-4. Gotowe!
+MIT
 
 ---
 
-## 📧 Konfiguracja EmailJS (formularz kontaktowy)
-
-1. Zarejestruj się na [EmailJS](https://www.emailjs.com/)
-2. Stwórz template emaila
-3. Skopiuj Service ID, Template ID i Public Key
-4. Edytuj funkcję `handleSubmit` w `js/app.js`:
-
-```javascript
-emailjs.send(
-    'TWÓJ_SERVICE_ID',
-    'TWÓJ_TEMPLATE_ID',
-    formData,
-    'TWÓJ_PUBLIC_KEY'
-)
-```
-
----
-
-## 🛠️ Wymagania przeglądarki
-
-- Chrome 90+
-- Firefox 88+
-- Safari 14+
-- Edge 90+
-
----
-
-## 📄 Licencja
-
-Ten projekt jest open-source i dostępny na licencji MIT.
-
----
-
-## 👤 Autor
-
-**Goncik**
-- GitHub: [goncik-tech](https://github.com/goncik-tech)
-- Discord: goncik-tech
-
----
-
-## 🙏 Podziękowania
-
-- React — za świetne narzędzie do budowy UI
-- Tailwind CSS — za rapid styling
-- Framer Motion — za piękne animacje
-- Kali Linux — za inspirację designu
-
----
-
-**Enjoy! 🚀**
-*Darmowe skrypty, bypassy AI i narzędzia.*
+**Enjoy!** — darmowe skrypty, bypassy AI i narzędzia.

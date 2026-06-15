@@ -1,2759 +1,1394 @@
-// ============================================
-// GONCIK-TECH MAIN APP
-// ============================================
+/* =========================================================
+   GONCIK-TECH — pełna aplikacja React (czysty, modularny)
+   - Wygląd: cyberpunk / glassmorphism / neon
+   - Dane: ładowane z window.data, zapisywane przez POST /api/save
+   - Brak zewnętrznych zależności poza React + Babel
+   ========================================================= */
 
-// Data - loaded from data.js
-let scripts, tutorials, news;
+const { useState, useEffect, useRef, useMemo, useCallback } = React;
 
-try {
-    if (window.data) {
-        scripts = window.data.scripts;
-        tutorials = window.data.tutorials;
-        news = window.data.news;
-    } else {
-        console.error('Data not loaded - data.js may have failed to load');
-        // Fallback empty data
-        scripts = [];
-        tutorials = [];
-        news = [];
-    }
-} catch (error) {
-    console.error('Error loading data:', error);
-    scripts = [];
-    tutorials = [];
-    news = [];
-}
-
-// ============================================
-// UTILITY HOOKS
-// ============================================
-
-// Scroll Reveal Hook
-function useScrollReveal() {
-    const [isVisible, setIsVisible] = React.useState(false);
-    const ref = React.useRef(null);
-
-    React.useEffect(() => {
-        const observer = new IntersectionObserver(
-            ([entry]) => {
-                if (entry.isIntersecting) {
-                    setIsVisible(true);
-                    observer.disconnect();
-                }
-            },
-            { threshold: 0.1 }
-        );
-
-        if (ref.current) {
-            observer.observe(ref.current);
-        }
-
-        return () => {
-            if (ref.current) {
-                observer.disconnect();
-            }
-        };
-    }, []);
-
-    return [ref, isVisible];
-}
-
-// ============================================
-// COMPONENTS
-// ============================================
-
-// Logo Component
-const Logo = () => (
-    <div className="flex items-center space-x-2 transition-all duration-500">
-        <svg
-            width="40"
-            height="40"
-            viewBox="0 0 100 100"
-            className="neon-border rounded-lg"
-        >
-            <defs>
-                <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stopColor="#00ff41" />
-                    <stop offset="100%" stopColor="#00d4ff" />
-                </linearGradient>
-                <filter id="glow">
-                    <feGaussianBlur stdDeviation="2.5" result="coloredBlur"/>
-                    <feMerge>
-                        <feMergeNode in="coloredBlur"/>
-                        <feMergeNode in="SourceGraphic"/>
-                    </feMerge>
-                </filter>
-            </defs>
-            <rect
-                x="10"
-                y="10"
-                width="80"
-                height="80"
-                rx="10"
-                fill="url(#logoGradient)"
-                filter="url(#glow)"
-            />
-            <text
-                x="50"
-                y="60"
-                fontSize="24"
-                fontWeight="bold"
-                fill="#0a0a0a"
-                textAnchor="middle"
-                fontFamily="'JetBrains Mono', monospace"
-            >G</text>
-        </svg>
-        <span className="font-mono font-bold text-xl neon-text text-neon-green">goncik-tech</span>
-    </div>
-);
-
-// Navbar Component
-const Navbar = ({ currentPage, setCurrentPage, isMobileMenuOpen, setIsMobileMenuOpen }) => {
-    const [isScrolled, setIsScrolled] = React.useState(false);
-
-    React.useEffect(() => {
-        const handleScroll = () => {
-            setIsScrolled(window.scrollY > 50);
-        };
-        window.addEventListener('scroll', handleScroll);
-        return () => window.removeEventListener('scroll', handleScroll);
-    }, []);
-
-    const navItems = [
-        { name: 'Home', page: 'home' },
-        { name: 'Skrypty', page: 'scripts' },
-        { name: 'Bypassy', page: 'bypassy' },
-        { name: 'Darmowe', page: 'free' },
-        { name: 'Tutoriale', page: 'tutorials' },
-        { name: 'News', page: 'news' },
-        { name: 'Kontakt', page: 'contact' },
-    ];
-
-    return (
-        <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-            isScrolled ? 'glass-effect py-4' : 'py-6'
-        }`}>
-            <div className="container mx-auto px-4 transition-all duration-500">
-                <div className="flex items-center justify-between transition-all duration-500">
-                    <button
-                        onClick={() => setCurrentPage('home')}
-                        className="hover:opacity-80 transition-opacity"
-                    >
-                        <Logo />
-                    </button>
-
-                    {/* Desktop Menu */}
-                    <div className="hidden md:flex items-center space-x-8 transition-all duration-500">
-                        {navItems.map((item) => (
-                            <button
-                                onClick={() => setCurrentPage(item.page)}
-                                className={`font-mono text-sm transition-all duration-200 relative group ${
-                                    currentPage === item.page
-                                        ? 'text-neon-green'
-                                        : 'text-gray-300 hover:text-neon-green'
-                                }`}
-                            >
-                                {item.name}
-                                <span className={`absolute bottom-[-5px] left-0 w-full h-0.5 bg-neon-green transition-all duration-200 ${
-                                    currentPage === item.page ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-100'
-                                }`} />
-                            </button>
-                        ))}
-                    </div>
-
-                    {/* Mobile Menu Button */}
-                    <button
-                        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                        className="md:hidden text-neon-green hover:text-neon-blue transition-colors"
-                    >
-                        <svg
-                            width="24"
-                            height="24"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                        >
-                            {isMobileMenuOpen ? (
-                                <path d="M18 6L6 18M6 6l12 12" />
-                            ) : (
-                                <>
-                                    <path d="M3 12h18M3 6h18M3 18h18" />
-                                </>
-                            )}
-                        </svg>
-                    </button>
-                </div>
-
-                {/* Mobile Menu */}
-                {isMobileMenuOpen && (
-                    <div
-                        className="md:hidden mt-4 pb-4 transition-all duration-500"
-                    >
-                        <div className="flex flex-col space-y-3 transition-all duration-500">
-                            {navItems.map((item) => (
-                                <button
-                                    onClick={() => {
-                                        setCurrentPage(item.page);
-                                        setIsMobileMenuOpen(false);
-                                    }}
-                                    className={`font-mono text-sm text-left py-2 px-4 rounded transition-all duration-200 ${
-                                        currentPage === item.page
-                                            ? 'text-neon-green bg-neon-green/10'
-                                            : 'text-gray-300 hover:text-neon-green hover:bg-neon-green/5'
-                                    }`}
-                                >
-                                    {item.name}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-                )}
-            </div>
-        </nav>
-    );
+/* =========================================================
+   1. Data layer + API
+   ========================================================= */
+const API = {
+    async status() {
+        try {
+            const r = await fetch('/api/status');
+            return await r.json();
+        } catch (e) { return { status: 'offline', error: String(e) }; }
+    },
+    async save(payload) {
+        const r = await fetch('/api/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+        });
+        return r.json();
+    },
+    async reset() {
+        const r = await fetch('/api/reset', { method: 'POST' });
+        return r.json();
+    },
 };
 
-// Footer Component
-const Footer = ({ isAdmin, isAdminPanelOpen, setIsAdminPanelOpen, logout }) => (
-    <footer className="bg-kali-dark border-t border-kali-border py-12">
-        <div className="container mx-auto px-4 transition-all duration-500">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-8 transition-all duration-500">
-                <div>
-                    <div className="mb-4 transition-all duration-500">
-                        <Logo />
-                    </div>
-                    <p className="text-gray-400 text-sm">
-                        Darmowe i płatne skrypty, bypassy do AI i inne narzędzia.
-                    </p>
-                </div>
+const ADMIN_PASSWORD = 'goncik123';
 
-                <div>
-                    <h4 className="font-mono font-bold text-neon-green mb-4">Narzędzia</h4>
-                    <ul className="space-y-2">
-                        <li>
-                            <button
-                                onClick={() => setCurrentPage('scripts')}
-                                className="text-gray-400 hover:text-neon-green text-sm transition-colors"
-                            >
-                                Wszystkie skrypty
-                            </button>
-                        </li>
-                        <li>
-                            <button
-                                onClick={() => setCurrentPage('bypassy')}
-                                className="text-gray-400 hover:text-neon-green text-sm transition-colors"
-                            >
-                                Bypassy AI
-                            </button>
-                        </li>
-                        <li>
-                            <button
-                                onClick={() => setCurrentPage('free')}
-                                className="text-gray-400 hover:text-neon-green text-sm transition-colors"
-                            >
-                                Darmowe
-                            </button>
-                        </li>
-                    </ul>
-                </div>
+const initialData = (() => {
+    if (typeof window !== 'undefined' && window.data) {
+        return {
+            scripts: Array.isArray(window.data.scripts) ? window.data.scripts : [],
+            tutorials: Array.isArray(window.data.tutorials) ? window.data.tutorials : [],
+            news: Array.isArray(window.data.news) ? window.data.news : [],
+        };
+    }
+    return { scripts: [], tutorials: [], news: [] };
+})();
 
-                <div>
-                    <h4 className="font-mono font-bold text-neon-green mb-4">Zasoby</h4>
-                    <ul className="space-y-2">
-                        <li>
-                            <button
-                                onClick={() => setCurrentPage('tutorials')}
-                                className="text-gray-400 hover:text-neon-green text-sm transition-colors"
-                            >
-                                Tutoriale
-                            </button>
-                        </li>
-                        <li>
-                            <button
-                                onClick={() => setCurrentPage('news')}
-                                className="text-gray-400 hover:text-neon-green text-sm transition-colors"
-                            >
-                                Aktualności
-                            </button>
-                        </li>
-                        <li>
-                            <button
-                                onClick={() => setCurrentPage('contact')}
-                                className="text-gray-400 hover:text-neon-green text-sm transition-colors"
-                            >
-                                Kontakt
-                            </button>
-                        </li>
-                    </ul>
-                </div>
-
-                <div>
-                    <h4 className="font-mono font-bold text-neon-green mb-4">Social</h4>
-                    <div className="flex space-x-4 transition-all duration-500">
-                        <a
-                            href="https://github.com/goncik-tech"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-gray-400 hover:text-neon-green transition-colors"
-                        >
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                                <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405 1.02 0 2.04.135 3 .405 2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
-                            </svg>
-                        </a>
-                        <a
-                            href="https://discord.gg/goncik-tech"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-gray-400 hover:text-neon-green transition-colors"
-                        >
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                                <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/>
-                            </svg>
-                        </a>
-                        <a
-                            href="https://twitter.com/goncik-tech"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-gray-400 hover:text-neon-green transition-colors"
-                        >
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                                <path d="M23.953 4.57a10 10 0 0 1-2.825.775 4.958 4.958 0 0 0 2.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 0 0-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 0 0-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 0 1-2.228-.616v.06a4.923 4.923 0 0 0 3.946 4.827 4.996 4.996 0 0 1-2.212.085 4.936 4.936 0 0 0 4.604 3.417 9.867 9.867 0 0 1-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 0 0 7.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0 0 24 4.59z"/>
-                            </svg>
-                        </a>
-                    </div>
-                </div>
-            </div>
-
-            <div className="mt-8 pt-8 border-t border-kali-border text-center transition-all duration-500">
-                <p className="text-gray-500 text-sm mb-4">
-                    © {new Date().getFullYear()} Goncik-tech. All rights reserved.
-                </p>
-
-                <div className="flex items-center justify-center gap-4">
-                    {isAdmin ? (
-                        <div className="flex items-center gap-3">
-                            <button
-                                onClick={() => setIsAdminPanelOpen(true)}
-                                className="font-mono text-xs text-neon-green hover:text-neon-blue transition-colors"
-                            >
-                                Panel Admina
-                            </button>
-                            <span className="text-gray-600">|</span>
-                            <button
-                                onClick={logout}
-                                className="font-mono text-xs text-red-500 hover:text-red-400 transition-colors"
-                            >
-                                Wyloguj
-                            </button>
-                        </div>
-                    ) : (
-                        <button
-                            onClick={() => setIsAdminPanelOpen(true)}
-                            className="font-mono text-xs text-gray-600 hover:text-neon-green transition-colors"
-                        >
-                            Admin
-                        </button>
-                    )}
-                </div>
-            </div>
-        </div>
-    </footer>
-);
-
-// Admin Auth Hook
-function useAdminAuth() {
-    const [isAdmin, setIsAdmin] = React.useState(false);
-    const [isAdminPanelOpen, setIsAdminPanelOpen] = React.useState(false);
-
-    React.useEffect(() => {
-        const storedAuth = localStorage.getItem('adminAuth');
-        if (storedAuth === 'authenticated') {
-            setIsAdmin(true);
-        }
+/* =========================================================
+   2. Toast system
+   ========================================================= */
+const ToastContext = React.createContext({ push: () => {} });
+function ToastProvider({ children }) {
+    const [toasts, setToasts] = useState([]);
+    const push = useCallback((text, type = 'success') => {
+        const id = Date.now() + Math.random();
+        setToasts((t) => [...t, { id, text, type }]);
+        setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 3200);
     }, []);
+    return (
+        <ToastContext.Provider value={{ push }}>
+            {children}
+            <div className="fixed bottom-5 right-5 z-[100] flex flex-col gap-2 pointer-events-none">
+                {toasts.map((t) => (
+                    <div
+                        key={t.id}
+                        className={`toast-enter glass-strong rounded-lg px-4 py-3 font-mono text-sm flex items-center gap-2 min-w-[220px] ${
+                            t.type === 'error' ? 'border-red-500/50' : t.type === 'info' ? 'border-neon-blue/50' : 'border-neon-green/50'
+                        }`}
+                    >
+                        <span className={`dot ${t.type === 'error' ? 'dot-red' : t.type === 'info' ? 'dot-yellow' : 'dot-green'}`}></span>
+                        <span className="text-gray-100">{t.text}</span>
+                    </div>
+                ))}
+            </div>
+        </ToastContext.Provider>
+    );
+}
+const useToast = () => React.useContext(ToastContext);
 
-    const login = (password) => {
-        const adminPassword = 'goncik123'; // Zmień na swoje hasło
-        if (password === adminPassword) {
-            localStorage.setItem('adminAuth', 'authenticated');
+/* =========================================================
+   3. Hooks
+   ========================================================= */
+function useScrollReveal() {
+    const ref = useRef(null);
+    const [visible, setVisible] = useState(false);
+    useEffect(() => {
+        if (!ref.current) return;
+        const obs = new IntersectionObserver(
+            ([e]) => {
+                if (e.isIntersecting) { setVisible(true); obs.disconnect(); }
+            },
+            { threshold: 0.12 }
+        );
+        obs.observe(ref.current);
+        return () => obs.disconnect();
+    }, []);
+    return [ref, visible];
+}
+
+function useServerStatus() {
+    const [status, setStatus] = useState('checking');
+    useEffect(() => {
+        let alive = true;
+        const check = async () => {
+            const r = await API.status();
+            if (alive) setStatus(r.status === 'ok' ? 'online' : 'offline');
+        };
+        check();
+        const id = setInterval(check, 5000);
+        return () => { alive = false; clearInterval(id); };
+    }, []);
+    return status;
+}
+
+function useAdminAuth() {
+    const [isAdmin, setIsAdmin] = useState(() => localStorage.getItem('goncik_admin') === '1');
+
+    const login = (pwd) => {
+        if (pwd === ADMIN_PASSWORD) {
+            localStorage.setItem('goncik_admin', '1');
             setIsAdmin(true);
             return true;
         }
         return false;
     };
-
     const logout = () => {
-        localStorage.removeItem('adminAuth');
+        localStorage.removeItem('goncik_admin');
         setIsAdmin(false);
     };
-
-    return { isAdmin, isAdminPanelOpen, setIsAdminPanelOpen, login, logout };
+    return { isAdmin, login, logout };
 }
 
-// Messages Hook - do zarządzania wiadomościami z kontaktu
 function useMessages() {
-    const [messages, setMessages] = React.useState([]);
+    const [messages, setMessages] = useState(() => {
+        try { return JSON.parse(localStorage.getItem('goncik_messages') || '[]'); }
+        catch { return []; }
+    });
 
-    React.useEffect(() => {
-        const storedMessages = localStorage.getItem('adminMessages');
-        if (storedMessages) {
-            setMessages(JSON.parse(storedMessages));
-        }
-    }, []);
+    useEffect(() => { localStorage.setItem('goncik_messages', JSON.stringify(messages)); }, [messages]);
 
-    const addMessage = (message) => {
-        const newMessage = {
-            id: Date.now(),
-            ...message,
-            timestamp: new Date().toISOString(),
-            status: 'unread',
-            replies: []
-        };
-        const updatedMessages = [newMessage, ...messages];
-        setMessages(updatedMessages);
-        localStorage.setItem('adminMessages', JSON.stringify(updatedMessages));
-        return newMessage;
+    const addMessage = (m) => {
+        const item = { id: Date.now() + Math.random(), timestamp: new Date().toISOString(), status: 'unread', replies: [], ...m };
+        setMessages((arr) => [item, ...arr]);
+        return item;
     };
-
-    const markAsRead = (messageId) => {
-        const updatedMessages = messages.map(msg =>
-            msg.id === messageId ? { ...msg, status: 'read' } : msg
-        );
-        setMessages(updatedMessages);
-        localStorage.setItem('adminMessages', JSON.stringify(updatedMessages));
+    const markRead = (id) => setMessages((arr) => arr.map((m) => m.id === id ? { ...m, status: 'read' } : m));
+    const reply = (id, text) => {
+        const replyItem = { id: Date.now() + Math.random(), text, timestamp: new Date().toISOString(), isAdmin: true };
+        setMessages((arr) => arr.map((m) => m.id === id ? { ...m, replies: [...(m.replies || []), replyItem], status: 'replied' } : m));
     };
-
-    const addReply = (messageId, reply) => {
-        const newReply = {
-            id: Date.now(),
-            text: reply,
-            timestamp: new Date().toISOString(),
-            isAdmin: true
-        };
-
-        const updatedMessages = messages.map(msg =>
-            msg.id === messageId
-                ? { ...msg, replies: [...msg.replies, newReply], status: 'replied' }
-                : msg
-        );
-
-        setMessages(updatedMessages);
-        localStorage.setItem('adminMessages', JSON.stringify(updatedMessages));
-    };
-
-    const deleteMessage = (messageId) => {
-        const updatedMessages = messages.filter(msg => msg.id !== messageId);
-        setMessages(updatedMessages);
-        localStorage.setItem('adminMessages', JSON.stringify(updatedMessages));
-    };
-
-    return { messages, addMessage, markAsRead, addReply, deleteMessage };
+    const remove = (id) => setMessages((arr) => arr.filter((m) => m.id !== id));
+    return { messages, addMessage, markRead, reply, remove };
 }
 
-// Admin Login Component
-const AdminLogin = ({ isOpen, onClose, onLogin }) => {
-    const [password, setPassword] = React.useState('');
-    const [error, setError] = React.useState('');
-
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        if (!password.trim()) {
-            setError('Podaj hasło');
-            return;
-        }
-
-        if (onLogin(password)) {
-            setError('');
-            setPassword('');
-        } else {
-            setError('Nieprawidłowe hasło');
-        }
-    };
-
-    if (!isOpen) return null;
-
-    return (
-        <div
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50"
-            onClick={onClose}
-        >
-            <div
-                className="glass-effect p-8 rounded-lg max-w-md w-full"
-                onClick={(e) => e.stopPropagation()}
-            >
-                <h3 className="font-mono text-2xl font-bold text-neon-green mb-6">
-                    Panel Admina
-                </h3>
-
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <div>
-                        <label className="block text-sm font-mono text-gray-400 mb-2">
-                            Hasło
-                        </label>
-                        <input
-                            type="password"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            className="w-full bg-kali-black border border-kali-border rounded px-4 py-3 text-white font-mono focus:outline-none focus:border-neon-green"
-                            placeholder="Podaj hasło admina"
-                        />
-                    </div>
-
-                    {error && (
-                        <div className="text-red-500 font-mono text-sm">
-                            {error}
-                        </div>
-                    )}
-
-                    <div className="flex gap-3">
-                        <button
-                            type="button"
-                            onClick={onClose}
-                            className="flex-1 font-mono px-4 py-3 border border-neon-green text-neon-green rounded-lg hover:bg-neon-green hover:text-black transition-colors"
-                        >
-                            Anuluj
-                        </button>
-                        <button
-                            type="submit"
-                            className="flex-1 font-mono px-4 py-3 bg-neon-green text-black rounded-lg hover:bg-neon-blue transition-colors"
-                        >
-                            Zaloguj
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    );
-};
-
-// Admin Dashboard Component
-const AdminDashboard = ({ isOpen, onClose, scripts, setScripts, tutorials, setTutorials, news, setNews }) => {
-    const [activeTab, setActiveTab] = React.useState('dashboard');
-    const [editedItem, setEditedItem] = React.useState(null);
-    const [showAddForm, setShowAddForm] = React.useState(false);
-    const [formData, setFormData] = React.useState({});
-    const [selectedMessage, setSelectedMessage] = React.useState(null);
-    const [replyText, setReplyText] = React.useState('');
-
-    // Messages hook
-    const { messages, markAsRead, addReply, deleteMessage } = useMessages();
-
-    if (!isOpen) return null;
-
-    const handleSave = (itemType, itemData) => {
-        const setters = {
-            scripts: setScripts,
-            tutorials: setTutorials,
-            news: setNews
-        };
-
-        const collections = {
-            scripts: scripts,
-            tutorials: tutorials,
-            news: news
-        };
-
-        let updatedCollection;
-
-        if (itemData.id) {
-            // Edycja istniejącego
-            updatedCollection = collections[itemType].map(item =>
-                item.id === itemData.id ? { ...item, ...itemData } : item
-            );
-        } else {
-            // Dodawanie nowego
-            const newId = Math.max(...collections[itemType].map(item => item.id)) + 1;
-            updatedCollection = [...collections[itemType], { id: newId, ...itemData }];
-        }
-
-        setters[itemType](updatedCollection);
-        setEditedItem(null);
-        setShowAddForm(false);
-        setFormData({});
-    };
-
-    const handleDelete = (itemType, id) => {
-        const setters = {
-            scripts: setScripts,
-            tutorials: setTutorials,
-            news: setNews
-        };
-
-        const collections = {
-            scripts: scripts,
-            tutorials: tutorials,
-            news: news
-        };
-
-        const updatedCollection = collections[itemType].filter(item => item.id !== id);
-        setters[itemType](updatedCollection);
-    };
-
-    const handleReply = () => {
-        if (!replyText.trim()) return;
-
-        addReply(selectedMessage.id, replyText);
-        setReplyText('');
-        setSelectedMessage(null);
-    };
-
-    const unreadCount = messages.filter(m => m.status === 'unread').length;
-
-    const renderDashboard = () => (
-        <div className="space-y-6">
-            <div className="glass-effect p-6 rounded-lg">
-                <h3 className="font-mono text-2xl font-bold text-neon-green mb-4">
-                    Statystyki
-                </h3>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="text-center">
-                        <div className="font-mono text-3xl font-bold text-neon-green">{scripts.length}</div>
-                        <div className="text-gray-400 text-sm">Skrypty</div>
-                    </div>
-                    <div className="text-center">
-                        <div className="font-mono text-3xl font-bold text-neon-blue">{tutorials.length}</div>
-                        <div className="text-gray-400 text-sm">Tutoriale</div>
-                    </div>
-                    <div className="text-center">
-                        <div className="font-mono text-3xl font-bold text-neon-purple">{news.length}</div>
-                        <div className="text-gray-400 text-sm">Aktualności</div>
-                    </div>
-                    <div className="text-center">
-                        <div className="font-mono text-3xl font-bold text-neon-pink">{scripts.reduce((acc, s) => acc + s.downloads, 0)}</div>
-                        <div className="text-gray-400 text-sm">Pobrań</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    );
-
-    const renderItemsList = (items, itemType) => (
-        <div className="space-y-4">
-            {showAddForm && editedItem === null ? (
-                <div className="glass-effect p-6 rounded-lg">
-                    <h3 className="font-mono text-xl font-bold text-neon-green mb-4">
-                        Dodaj nowy
-                    </h3>
-                    {itemType === 'scripts' && (
-                        <ScriptForm
-                            formData={formData}
-                            setFormData={setFormData}
-                            onSave={(data) => handleSave(itemType, data)}
-                            onCancel={() => setShowAddForm(false)}
-                        />
-                    )}
-                    {itemType === 'tutorials' && (
-                        <TutorialForm
-                            formData={formData}
-                            setFormData={setFormData}
-                            onSave={(data) => handleSave(itemType, data)}
-                            onCancel={() => setShowAddForm(false)}
-                        />
-                    )}
-                    {itemType === 'news' && (
-                        <NewsForm
-                            formData={formData}
-                            setFormData={setFormData}
-                            onSave={(data) => handleSave(itemType, data)}
-                            onCancel={() => setShowAddForm(false)}
-                        />
-                    )}
-                </div>
-            ) : null}
-
-            {items.map(item => (
-                <div key={item.id} className="glass-effect p-4 rounded-lg">
-                    <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                            <h4 className="font-mono font-bold text-white mb-2">
-                                {item.name || item.title}
-                            </h4>
-                            <p className="text-gray-400 text-sm">
-                                {item.description || item.excerpt}
-                            </p>
-                        </div>
-                        <div className="flex gap-2 ml-4">
-                            <button
-                                onClick={() => {
-                                    setEditedItem(item);
-                                    setFormData(item);
-                                    setShowAddForm(true);
-                                }}
-                                className="p-2 text-neon-blue hover:text-neon-green transition-colors"
-                            >
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                                </svg>
-                            </button>
-                            <button
-                                onClick={() => handleDelete(itemType, item.id)}
-                                className="p-2 text-red-500 hover:text-red-400 transition-colors"
-                            >
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                                </svg>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            ))}
-        </div>
-    );
-
-    return (
-        <div
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50"
-            onClick={onClose}
-        >
-            <div
-                className="glass-effect rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden"
-                onClick={(e) => e.stopPropagation()}
-            >
-                <div className="p-6 border-b border-kali-border flex items-center justify-between">
-                    <h3 className="font-mono text-2xl font-bold text-neon-green">
-                        Panel Admina
-                    </h3>
-                    <button
-                        onClick={onClose}
-                        className="text-gray-400 hover:text-white transition-colors"
-                    >
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M18 6L6 18M6 6l12 12" />
-                        </svg>
-                    </button>
-                </div>
-
-                <div className="grid grid-cols-4 h-[calc(90vh-80px)]">
-                    {/* Sidebar */}
-                    <div className="col-span-1 border-r border-kali-border p-4 space-y-2">
-                        <button
-                            onClick={() => {
-                                setActiveTab('dashboard');
-                                setShowAddForm(false);
-                                setEditedItem(null);
-                            }}
-                            className={`w-full text-left px-4 py-3 rounded-lg font-mono text-sm transition-colors ${
-                                activeTab === 'dashboard'
-                                    ? 'bg-neon-green text-black'
-                                    : 'text-gray-300 hover:bg-kali-border'
-                            }`}
-                        >
-                            Dashboard
-                        </button>
-                        <button
-                            onClick={() => {
-                                setActiveTab('scripts');
-                                setShowAddForm(false);
-                                setEditedItem(null);
-                            }}
-                            className={`w-full text-left px-4 py-3 rounded-lg font-mono text-sm transition-colors ${
-                                activeTab === 'scripts'
-                                    ? 'bg-neon-green text-black'
-                                    : 'text-gray-300 hover:bg-kali-border'
-                            }`}
-                        >
-                            Skrypty
-                        </button>
-                        <button
-                            onClick={() => {
-                                setActiveTab('tutorials');
-                                setShowAddForm(false);
-                                setEditedItem(null);
-                            }}
-                            className={`w-full text-left px-4 py-3 rounded-lg font-mono text-sm transition-colors ${
-                                activeTab === 'tutorials'
-                                    ? 'bg-neon-green text-black'
-                                    : 'text-gray-300 hover:bg-kali-border'
-                            }`}
-                        >
-                            Tutoriale
-                        </button>
-                        <button
-                            onClick={() => {
-                                setActiveTab('news');
-                                setShowAddForm(false);
-                                setEditedItem(null);
-                            }}
-                            className={`w-full text-left px-4 py-3 rounded-lg font-mono text-sm transition-colors ${
-                                activeTab === 'news'
-                                    ? 'bg-neon-green text-black'
-                                    : 'text-gray-300 hover:bg-kali-border'
-                            }`}
-                        >
-                            Aktualności
-                        </button>
-                        <button
-                            onClick={() => {
-                                setActiveTab('messages');
-                                setShowAddForm(false);
-                                setEditedItem(null);
-                            }}
-                            className={`w-full text-left px-4 py-3 rounded-lg font-mono text-sm transition-colors relative ${
-                                activeTab === 'messages'
-                                    ? 'bg-neon-green text-black'
-                                    : 'text-gray-300 hover:bg-kali-border'
-                            }`}
-                        >
-                            Wiadomości
-                            {unreadCount > 0 && (
-                                <span className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                                    {unreadCount}
-                                </span>
-                            )}
-                        </button>
-                    </div>
-
-                    {/* Content */}
-                    <div className="col-span-3 p-6 overflow-y-auto">
-                        {activeTab === 'dashboard' && renderDashboard()}
-                        {activeTab === 'scripts' && (
-                            <div>
-                                <div className="flex items-center justify-between mb-6">
-                                    <h3 className="font-mono text-2xl font-bold text-neon-green">
-                                        Skrypty
-                                    </h3>
-                                    <button
-                                        onClick={() => {
-                                            setShowAddForm(true);
-                                            setEditedItem(null);
-                                            setFormData({});
-                                        }}
-                                        className="font-mono px-4 py-2 bg-neon-green text-black rounded-lg hover:bg-neon-blue transition-colors"
-                                    >
-                                        + Dodaj
-                                    </button>
-                                </div>
-                                {renderItemsList(scripts, 'scripts')}
-                            </div>
-                        )}
-                        {activeTab === 'tutorials' && (
-                            <div>
-                                <div className="flex items-center justify-between mb-6">
-                                    <h3 className="font-mono text-2xl font-bold text-neon-green">
-                                        Tutoriale
-                                    </h3>
-                                    <button
-                                        onClick={() => {
-                                            setShowAddForm(true);
-                                            setEditedItem(null);
-                                            setFormData({});
-                                        }}
-                                        className="font-mono px-4 py-2 bg-neon-green text-black rounded-lg hover:bg-neon-blue transition-colors"
-                                    >
-                                        + Dodaj
-                                    </button>
-                                </div>
-                                {renderItemsList(tutorials, 'tutorials')}
-                            </div>
-                        )}
-                         {activeTab === 'news' && (
-                            <div>
-                                <div className="flex items-center justify-between mb-6">
-                                    <h3 className="font-mono text-2xl font-bold text-neon-green">
-                                        Aktualności
-                                    </h3>
-                                    <button
-                                        onClick={() => {
-                                            setShowAddForm(true);
-                                            setEditedItem(null);
-                                            setFormData({});
-                                        }}
-                                        className="font-mono px-4 py-2 bg-neon-green text-black rounded-lg hover:bg-neon-blue transition-colors"
-                                    >
-                                        + Dodaj
-                                    </button>
-                                </div>
-                                {renderItemsList(news, 'news')}
-                            </div>
-                        )}
-                        {activeTab === 'messages' && (
-                            <div>
-                                <div className="flex items-center justify-between mb-6">
-                                    <h3 className="font-mono text-2xl font-bold text-neon-green">
-                                        Wiadomości
-                                    </h3>
-                                    <div className="text-sm text-gray-400">
-                                        {messages.filter(m => m.status === 'unread').length} nieprzeczytanych
-                                    </div>
-                                </div>
-
-                                {messages.length === 0 ? (
-                                    <div className="glass-effect p-12 rounded-lg text-center">
-                                        <p className="text-gray-400 font-mono">
-                                            Brak wiadomości
-                                        </p>
-                                    </div>
-                                ) : (
-                                    <div className="space-y-4">
-                                        {messages.map((message) => (
-                                            <div
-                                                key={message.id}
-                                                className={`glass-effect p-4 rounded-lg cursor-pointer transition-all ${
-                                                    message.status === 'unread' ? 'border-l-4 border-l-neon-green' : ''
-                                                }`}
-                                                onClick={() => {
-                                                    if (message.status === 'unread') {
-                                                        markAsRead(message.id);
-                                                    }
-                                                    setSelectedMessage(message);
-                                                }}
-                                            >
-                                                <div className="flex items-start justify-between mb-3">
-                                                    <div className="flex-1">
-                                                        <div className="flex items-center gap-2 mb-2">
-                                                            <span className="font-mono font-bold text-white">
-                                                                {message.name}
-                                                            </span>
-                                                            <span className="text-gray-500 text-sm">
-                                                                {new Date(message.timestamp).toLocaleString('pl-PL')}
-                                                            </span>
-                                                            {message.status === 'unread' && (
-                                                                <span className="px-2 py-1 text-xs bg-neon-green text-black rounded-full">
-                                                                    Nowa
-                                                                </span>
-                                                            )}
-                                                        </div>
-                                                        <p className="text-gray-400 text-sm mb-2">
-                                                            {message.email}
-                                                        </p>
-                                                        <p className="text-gray-300 font-mono text-sm mb-1">
-                                                            {message.subject}
-                                                        </p>
-                                                    </div>
-                                                    <button
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            deleteMessage(message.id);
-                                                        }}
-                                                        className="text-red-500 hover:text-red-400 transition-colors"
-                                                    >
-                                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                            <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                                                        </svg>
-                                                    </button>
-                                                </div>
-
-                                                <p className="text-gray-400 text-sm line-clamp-2">
-                                                    {message.message}
-                                                </p>
-
-                                                {message.replies && message.replies.length > 0 && (
-                                                    <div className="mt-4 space-y-2">
-                                                        {message.replies.map((reply) => (
-                                                            <div
-                                                                key={reply.id}
-                                                                className="bg-kali-black p-3 rounded border-l-2 border-neon-blue"
-                                                            >
-                                                                <div className="flex items-center gap-2 mb-1">
-                                                                    <span className="text-neon-blue font-mono text-xs">
-                                                                        Admin
-                                                                    </span>
-                                                                    <span className="text-gray-500 text-xs">
-                                                                        {new Date(reply.timestamp).toLocaleString('pl-PL')}
-                                                                    </span>
-                                                                </div>
-                                                                <p className="text-gray-300 text-sm">
-                                                                    {reply.text}
-                                                                </p>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-
-                                {/* Message Detail */}
-                                {selectedMessage && (
-                                    <div className="glass-effect p-6 rounded-lg mt-4">
-                                        <div className="flex items-center justify-between mb-4">
-                                            <h3 className="font-mono text-xl font-bold text-neon-green">
-                                                Szczegóły wiadomości
-                                            </h3>
-                                            <button
-                                                onClick={() => setSelectedMessage(null)}
-                                                className="text-gray-400 hover:text-white transition-colors"
-                                            >
-                                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                    <path d="M18 6L6 18M6 6l12 12" />
-                                                </svg>
-                                            </button>
-                                        </div>
-
-                                        <div className="space-y-4">
-                                            <div>
-                                                <span className="text-gray-400 text-sm">Od:</span>
-                                                <span className="text-white font-mono ml-2">{selectedMessage.name}</span>
-                                                <span className="text-gray-500 text-sm ml-4">({selectedMessage.email})</span>
-                                            </div>
-                                            <div>
-                                                <span className="text-gray-400 text-sm">Temat:</span>
-                                                <span className="text-white font-mono ml-2">{selectedMessage.subject}</span>
-                                            </div>
-                                            <div>
-                                                <span className="text-gray-400 text-sm">Data:</span>
-                                                <span className="text-gray-500 text-sm ml-2">
-                                                    {new Date(selectedMessage.timestamp).toLocaleString('pl-PL')}
-                                                </span>
-                                            </div>
-                                            <div className="bg-kali-black p-4 rounded">
-                                                <span className="text-gray-400 text-sm">Wiadomość:</span>
-                                                <p className="text-gray-300 mt-2">{selectedMessage.message}</p>
-                                            </div>
-                                        </div>
-
-                                        <div className="mt-6">
-                                            <h4 className="font-mono text-sm font-bold text-neon-green mb-3">
-                                                Odpowiedz
-                                            </h4>
-                                            <div className="space-y-4">
-                                                <textarea
-                                                    value={replyText}
-                                                    onChange={(e) => setReplyText(e.target.value)}
-                                                    placeholder="Napisz odpowiedź..."
-                                                    className="w-full bg-kali-black border border-kali-border rounded px-4 py-3 text-white font-mono focus:outline-none focus:border-neon-green"
-                                                    rows="4"
-                                                />
-                                                <div className="flex gap-3">
-                                                    <button
-                                                        onClick={handleReply}
-                                                        className="flex-1 font-mono px-4 py-3 bg-neon-green text-black rounded-lg hover:bg-neon-blue transition-colors"
-                                                    >
-                                                        Wyślij odpowiedź
-                                                    </button>
-                                                    <button
-                                                        onClick={() => {
-                                                            setSelectedMessage(null);
-                                                            setReplyText('');
-                                                        }}
-                                                        className="flex-1 font-mono px-4 py-3 border border-neon-green text-neon-green rounded-lg hover:bg-neon-green hover:text-black transition-colors"
-                                                    >
-                                                        Anuluj
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        )}
-                    </div>
-                </div>
-            </div>
-        </div>
-    );
-};
-
-// Script Form Component
-const ScriptForm = ({ formData, setFormData, onSave, onCancel }) => (
-    <form onSubmit={(e) => { e.preventDefault(); onSave(formData); }} className="space-y-4">
-        <div>
-            <label className="block text-sm font-mono text-gray-400 mb-2">Nazwa</label>
-            <input
-                type="text"
-                value={formData.name || ''}
-                onChange={(e) => setFormData({...formData, name: e.target.value})}
-                className="w-full bg-kali-black border border-kali-border rounded px-4 py-2 text-white font-mono focus:outline-none focus:border-neon-green"
-                required
-            />
-        </div>
-        <div>
-            <label className="block text-sm font-mono text-gray-400 mb-2">Opis</label>
-            <textarea
-                value={formData.description || ''}
-                onChange={(e) => setFormData({...formData, description: e.target.value})}
-                className="w-full bg-kali-black border border-kali-border rounded px-4 py-2 text-white font-mono focus:outline-none focus:border-neon-green"
-                rows="3"
-                required
-            />
-        </div>
-        <div className="grid grid-cols-2 gap-4">
-            <div>
-                <label className="block text-sm font-mono text-gray-400 mb-2">Kategoria</label>
-                <select
-                    value={formData.category || 'bypass'}
-                    onChange={(e) => setFormData({...formData, category: e.target.value})}
-                    className="w-full bg-kali-black border border-kali-border rounded px-4 py-2 text-white font-mono focus:outline-none focus:border-neon-green"
-                >
-                    <option value="bypass">Bypass</option>
-                    <option value="script">Script</option>
-                    <option value="bot">Bot</option>
-                    <option value="tool">Tool</option>
-                    <option value="generator">Generator</option>
-                </select>
-            </div>
-            <div>
-                <label className="block text-sm font-mono text-gray-400 mb-2">Typ</label>
-                <select
-                    value={formData.isFree ? 'free' : 'premium'}
-                    onChange={(e) => setFormData({...formData, isFree: e.target.value === 'free'})}
-                    className="w-full bg-kali-black border border-kali-border rounded px-4 py-2 text-white font-mono focus:outline-none focus:border-neon-green"
-                >
-                    <option value="free">Darmowy</option>
-                    <option value="premium">Premium</option>
-                </select>
-            </div>
-        </div>
-        <div>
-            <label className="block text-sm font-mono text-gray-400 mb-2">URL do pobrania</label>
-            <input
-                type="text"
-                value={formData.downloadUrl || ''}
-                onChange={(e) => setFormData({...formData, downloadUrl: e.target.value})}
-                className="w-full bg-kali-black border border-kali-border rounded px-4 py-2 text-white font-mono focus:outline-none focus:border-neon-green"
-                required
-            />
-        </div>
-        <div>
-            <label className="block text-sm font-mono text-gray-400 mb-2">Tagi (przecinek)</label>
-            <input
-                type="text"
-                value={formData.tags?.join(', ') || ''}
-                onChange={(e) => setFormData({...formData, tags: e.target.value.split(',').map(t => t.trim())})}
-                className="w-full bg-kali-black border border-kali-border rounded px-4 py-2 text-white font-mono focus:outline-none focus:border-neon-green"
-            />
-        </div>
-        <div className="flex gap-3">
-            <button
-                type="submit"
-                className="flex-1 font-mono px-4 py-2 bg-neon-green text-black rounded-lg hover:bg-neon-blue transition-colors"
-            >
-                Zapisz
-            </button>
-            <button
-                type="button"
-                onClick={onCancel}
-                className="flex-1 font-mono px-4 py-2 border border-neon-green text-neon-green rounded-lg hover:bg-neon-green hover:text-black transition-colors"
-            >
-                Anuluj
-            </button>
-        </div>
-    </form>
-);
-
-// Tutorial Form Component
-const TutorialForm = ({ formData, setFormData, onSave, onCancel }) => (
-    <form onSubmit={(e) => { e.preventDefault(); onSave(formData); }} className="space-y-4">
-        <div>
-            <label className="block text-sm font-mono text-gray-400 mb-2">Tytuł</label>
-            <input
-                type="text"
-                value={formData.title || ''}
-                onChange={(e) => setFormData({...formData, title: e.target.value})}
-                className="w-full bg-kali-black border border-kali-border rounded px-4 py-2 text-white font-mono focus:outline-none focus:border-neon-green"
-                required
-            />
-        </div>
-        <div>
-            <label className="block text-sm font-mono text-gray-400 mb-2">Opis</label>
-            <textarea
-                value={formData.excerpt || ''}
-                onChange={(e) => setFormData({...formData, excerpt: e.target.value})}
-                className="w-full bg-kali-black border border-kali-border rounded px-4 py-2 text-white font-mono focus:outline-none focus:border-neon-green"
-                rows="2"
-                required
-            />
-        </div>
-        <div>
-            <label className="block text-sm font-mono text-gray-400 mb-2">Treść (HTML)</label>
-            <textarea
-                value={formData.content || ''}
-                onChange={(e) => setFormData({...formData, content: e.target.value})}
-                className="w-full bg-kali-black border border-kali-border rounded px-4 py-2 text-white font-mono focus:outline-none focus:border-neon-green"
-                rows="6"
-                required
-            />
-        </div>
-        <div className="grid grid-cols-2 gap-4">
-            <div>
-                <label className="block text-sm font-mono text-gray-400 mb-2">Kategoria</label>
-                <select
-                    value={formData.category || 'script'}
-                    onChange={(e) => setFormData({...formData, category: e.target.value})}
-                    className="w-full bg-kali-black border border-kali-border rounded px-4 py-2 text-white font-mono focus:outline-none focus:border-neon-green"
-                >
-                    <option value="bypass">Bypass</option>
-                    <option value="script">Script</option>
-                    <option value="bot">Bot</option>
-                    <option value="tool">Tool</option>
-                </select>
-            </div>
-            <div>
-                <label className="block text-sm font-mono text-gray-400 mb-2">Czy wyróżnić?</label>
-                <select
-                    value={formData.featured ? 'yes' : 'no'}
-                    onChange={(e) => setFormData({...formData, featured: e.target.value === 'yes'})}
-                    className="w-full bg-kali-black border border-kali-border rounded px-4 py-2 text-white font-mono focus:outline-none focus:border-neon-green"
-                >
-                    <option value="no">Nie</option>
-                    <option value="yes">Tak</option>
-                </select>
-            </div>
-        </div>
-        <div className="flex gap-3">
-            <button
-                type="submit"
-                className="flex-1 font-mono px-4 py-2 bg-neon-green text-black rounded-lg hover:bg-neon-blue transition-colors"
-            >
-                Zapisz
-            </button>
-            <button
-                type="button"
-                onClick={onCancel}
-                className="flex-1 font-mono px-4 py-2 border border-neon-green text-neon-green rounded-lg hover:bg-neon-green hover:text-black transition-colors"
-            >
-                Anuluj
-            </button>
-        </div>
-    </form>
-);
-
-// News Form Component
-const NewsForm = ({ formData, setFormData, onSave, onCancel }) => (
-    <form onSubmit={(e) => { e.preventDefault(); onSave(formData); }} className="space-y-4">
-        <div>
-            <label className="block text-sm font-mono text-gray-400 mb-2">Tytuł</label>
-            <input
-                type="text"
-                value={formData.title || ''}
-                onChange={(e) => setFormData({...formData, title: e.target.value})}
-                className="w-full bg-kali-black border border-kali-border rounded px-4 py-2 text-white font-mono focus:outline-none focus:border-neon-green"
-                required
-            />
-        </div>
-        <div>
-            <label className="block text-sm font-mono text-gray-400 mb-2">Opis</label>
-            <textarea
-                value={formData.excerpt || ''}
-                onChange={(e) => setFormData({...formData, excerpt: e.target.value})}
-                className="w-full bg-kali-black border border-kali-border rounded px-4 py-2 text-white font-mono focus:outline-none focus:border-neon-green"
-                rows="3"
-                required
-            />
-        </div>
-        <div>
-            <label className="block text-sm font-mono text-gray-400 mb-2">Treść</label>
-            <textarea
-                value={formData.content || ''}
-                onChange={(e) => setFormData({...formData, content: e.target.value})}
-                className="w-full bg-kali-black border border-kali-border rounded px-4 py-2 text-white font-mono focus:outline-none focus:border-neon-green"
-                rows="4"
-                required
-            />
-        </div>
-        <div className="grid grid-cols-2 gap-4">
-            <div>
-                <label className="block text-sm font-mono text-gray-400 mb-2">Kategoria</label>
-                <select
-                    value={formData.category || 'update'}
-                    onChange={(e) => setFormData({...formData, category: e.target.value})}
-                    className="w-full bg-kali-black border border-kali-border rounded px-4 py-2 text-white font-mono focus:outline-none focus:border-neon-green"
-                >
-                    <option value="update">Aktualizacja</option>
-                    <option value="milestone">Kamień milowy</option>
-                    <option value="feature">Funkcja</option>
-                </select>
-            </div>
-            <div>
-                <label className="block text-sm font-mono text-gray-400 mb-2">Czy wyróżnić?</label>
-                <select
-                    value={formData.featured ? 'yes' : 'no'}
-                    onChange={(e) => setFormData({...formData, featured: e.target.value === 'yes'})}
-                    className="w-full bg-kali-black border border-kali-border rounded px-4 py-2 text-white font-mono focus:outline-none focus:border-neon-green"
-                >
-                    <option value="no">Nie</option>
-                    <option value="yes">Tak</option>
-                </select>
-            </div>
-        </div>
-        <div className="flex gap-3">
-            <button
-                type="submit"
-                className="flex-1 font-mono px-4 py-2 bg-neon-green text-black rounded-lg hover:bg-neon-blue transition-colors"
-            >
-                Zapisz
-            </button>
-            <button
-                type="button"
-                onClick={onCancel}
-                className="flex-1 font-mono px-4 py-2 border border-neon-green text-neon-green rounded-lg hover:bg-neon-green hover:text-black transition-colors"
-            >
-                Anuluj
-            </button>
-        </div>
-    </form>
-);
-
-// Matrix Rain Component
-const MatrixRain = () => {
-    const canvasRef = React.useRef(null);
-
-    React.useEffect(() => {
-        const canvas = canvasRef.current;
+/* =========================================================
+   4. Matrix rain (canvas) - zachowany, lekko poprawiony
+   ========================================================= */
+function MatrixRain() {
+    useEffect(() => {
+        const canvas = document.getElementById('matrix-rain');
         if (!canvas) return;
-
         const ctx = canvas.getContext('2d');
+        const chars = 'アイウエオカキクケコサシスセソタチツテトナニヌネノ0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ@#$%^&*';
+        let drops = [];
+        let w = 0, h = 0;
 
-        const resizeCanvas = () => {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
+        const resize = () => {
+            w = canvas.width = window.innerWidth;
+            h = canvas.height = window.innerHeight;
+            const fontSize = 16;
+            const cols = Math.floor(w / fontSize);
+            drops = new Array(cols).fill(0).map(() => Math.random() * h / fontSize);
+            canvas.dataset.fontSize = fontSize;
         };
+        resize();
+        window.addEventListener('resize', resize);
 
-        resizeCanvas();
-        window.addEventListener('resize', resizeCanvas);
-
-        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%^&*()';
-        const fontSize = 14;
-        const columns = canvas.width / fontSize;
-        const drops = Array(Math.floor(columns)).fill(1);
-
-        const drawMatrix = () => {
-            ctx.fillStyle = 'rgba(10, 10, 10, 0.05)';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            ctx.fillStyle = '#00ff41';
+        let raf;
+        const draw = () => {
+            ctx.fillStyle = 'rgba(7, 7, 8, 0.06)';
+            ctx.fillRect(0, 0, w, h);
+            const fontSize = parseInt(canvas.dataset.fontSize, 10);
             ctx.font = `${fontSize}px JetBrains Mono`;
-
             for (let i = 0; i < drops.length; i++) {
                 const text = chars[Math.floor(Math.random() * chars.length)];
-                ctx.fillText(text, i * fontSize, drops[i] * fontSize);
-
-                if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
-                    drops[i] = 0;
-                }
-                drops[i]++;
+                const x = i * fontSize;
+                const y = drops[i] * fontSize;
+                // head brighter
+                ctx.fillStyle = '#aaffaa';
+                ctx.fillText(text, x, y);
+                ctx.fillStyle = 'rgba(0, 255, 65, 0.6)';
+                ctx.fillText(text, x, y);
+                if (y > h && Math.random() > 0.975) drops[i] = 0;
+                drops[i] += 0.9;
             }
+            raf = requestAnimationFrame(draw);
         };
+        raf = requestAnimationFrame(draw);
 
-        const intervalId = setInterval(drawMatrix, 50);
-
-        return () => {
-            clearInterval(intervalId);
-            window.removeEventListener('resize', resizeCanvas);
-        };
+        return () => { cancelAnimationFrame(raf); window.removeEventListener('resize', resize); };
     }, []);
+    return null;
+}
 
-    return <canvas ref={canvasRef} id="matrix-rain" />;
-};
-
-// Hero Component
-const Hero = ({ setCurrentPage }) => {
-    const [text, setText] = React.useState('');
-    const fullText = 'skrypty, bypassy, narzędzia AI';
-    const [index, setIndex] = React.useState(0);
-
-    React.useEffect(() => {
-        const typingInterval = setInterval(() => {
-            if (index < fullText.length) {
-                setText(fullText.substring(0, index + 1));
-                setIndex(index + 1);
-            } else {
-                setIndex(0);
-                setText('');
-            }
-        }, 150);
-
-        return () => clearInterval(typingInterval);
-    }, [index]);
-
+/* =========================================================
+   5. UI primitives
+   ========================================================= */
+function Logo({ onClick, size = 'md' }) {
+    const dim = size === 'sm' ? 32 : 40;
     return (
-        <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
-            <MatrixRain />
-
-            <div className="relative z-10 container mx-auto px-4 text-center transition-all duration-500">
-                <div
-                >
-                    <h1 className="font-mono text-4xl md:text-6xl lg:text-7xl font-bold mb-6 neon-text">
-                        <span className="text-neon-green">Gonci</span>
-                        <span className="text-white">k-tech</span>
-                    </h1>
-
-                    <p className="text-xl md:text-2xl text-gray-300 mb-8 h-8">
-                        <span className="text-neon-blue">{text}</span>
-                        <span className="typing-cursor"></span>
-                    </p>
-
-                    <p className="text-gray-400 mb-12 max-w-2xl mx-auto">
-                        Darmowe i płatne skrypty, bypassy do AI i inne narzędzia.
-                        Automatyzuj swoje workflow i zwiększ efektywność.
-                    </p>
-
-                    <div className="flex flex-col sm:flex-row gap-4 justify-center transition-all duration-500">
-                        <button
-                            onClick={() => setCurrentPage('scripts')}
-                            className="font-mono px-8 py-4 bg-neon-green text-black font-bold rounded-lg hover:bg-neon-blue transition-colors neon-border"
-                        >
-                            Przeglądaj skrypty
-                        </button>
-
-                        <button
-                            onClick={() => setCurrentPage('tutorials')}
-                            className="font-mono px-8 py-4 border-2 border-neon-green text-neon-green font-bold rounded-lg hover:bg-neon-green hover:text-black transition-colors"
-                        >
-                            Zobacz tutoriale
-                        </button>
-                    </div>
+        <button onClick={onClick} className="flex items-center gap-2 group">
+            <div className="relative" style={{ width: dim, height: dim }}>
+                <div className="absolute inset-0 rounded-lg bg-gradient-to-br from-neon-green via-neon-blue to-neon-purple opacity-90 group-hover:opacity-100 transition" />
+                <div className="absolute inset-[2px] rounded-md bg-kali-black flex items-center justify-center">
+                    <span className="font-mono font-bold text-neon-green" style={{ fontSize: dim * 0.5 }}>G</span>
                 </div>
             </div>
-
-            <div className="absolute bottom-10 left-1/2 transform -translate-x-1/2 animate-bounce transition-all duration-500">
-                <svg
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="#00ff41"
-                    strokeWidth="2"
-                >
-                    <path d="M7 13l5 5 5-5M7 6l5 5 5-5" />
-                </svg>
+            <div className="leading-tight text-left">
+                <div className="font-mono font-bold text-base sm:text-lg text-white">goncik<span className="text-neon-green">-tech</span></div>
+                <div className="font-mono text-[10px] text-gray-500 hidden sm:block">scripts • bypasses • tools</div>
             </div>
-        </section>
+        </button>
     );
-};
+}
 
-// Stats Bar Component
-const StatsBar = () => {
-    const [isVisible, setIsVisible] = React.useState(false);
-    const ref = React.useRef(null);
-
-    React.useEffect(() => {
-        const observer = new IntersectionObserver(
-            ([entry]) => {
-                if (entry.isIntersecting) {
-                    setIsVisible(true);
-                    observer.disconnect();
-                }
-            },
-            { threshold: 0.5 }
-        );
-
-        if (ref.current) {
-            observer.observe(ref.current);
-        }
-
-        return () => {
-            if (ref.current) {
-                observer.disconnect();
-            }
-        };
-    }, []);
-
-    const stats = [
-        { value: 15, label: 'Skryptów', suffix: '+' },
-        { value: 5000, label: 'Pobrań', suffix: '+' },
-        { value: 2000, label: 'Użytkowników', suffix: '+' },
-        { value: 10, label: 'Tutoriale', suffix: '+' },
-    ];
-
+function StatusBadge({ status }) {
+    const map = {
+        online: { color: 'dot-green', text: 'API: online' },
+        offline: { color: 'dot-red', text: 'API: offline' },
+        checking: { color: 'dot-yellow', text: 'API: sprawdzanie…' },
+    };
+    const s = map[status] || map.checking;
     return (
-        <div ref={ref} className="glass-effect py-8 mb-20 transition-all duration-500">
-            <div className="container mx-auto px-4 transition-all duration-500">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-8 transition-all duration-500">
-                    {stats.map((stat, index) => (
-                        <div
-                            className="text-center transition-all duration-500"
-                        >
-                            <div className="font-mono text-4xl md:text-5xl font-bold text-neon-green mb-2 transition-all duration-500">
-                                {isVisible ? (
-                                    <CountUp value={stat.value} suffix={stat.suffix} />
-                                ) : (
-                                    `0${stat.suffix}`
-                                )}
-                            </div>
-                            <div className="text-gray-400 font-mono text-sm transition-all duration-500">{stat.label}</div>
-                        </div>
-                    ))}
-                </div>
+        <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md glass text-[11px] font-mono text-gray-300">
+            <span className={`dot ${s.color}`}></span>{s.text}
+        </span>
+    );
+}
+
+function Modal({ open, onClose, children, maxWidth = 'max-w-md' }) {
+    if (!open) return null;
+    return (
+        <div className="fixed inset-0 z-[80] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
+            <div className={`glass-strong rounded-xl w-full ${maxWidth} max-h-[92vh] overflow-hidden flex flex-col`} onClick={(e) => e.stopPropagation()}>
+                {children}
             </div>
         </div>
     );
-};
+}
 
-// CountUp Component
-const CountUp = ({ value, suffix }) => {
-    const [count, setCount] = React.useState(0);
+/* =========================================================
+   6. Navbar + Footer
+   ========================================================= */
+const NAV = [
+    { id: 'home', label: 'Home' },
+    { id: 'scripts', label: 'Skrypty' },
+    { id: 'bypassy', label: 'Bypassy' },
+    { id: 'free', label: 'Darmowe' },
+    { id: 'tutorials', label: 'Tutoriale' },
+    { id: 'news', label: 'News' },
+    { id: 'contact', label: 'Kontakt' },
+];
 
-    React.useEffect(() => {
-        let startTime;
-        const duration = 2000;
-
-        const animate = (timestamp) => {
-            if (!startTime) startTime = timestamp;
-            const progress = Math.min((timestamp - startTime) / duration, 1);
-            setCount(Math.floor(progress * value));
-
-            if (progress < 1) {
-                requestAnimationFrame(animate);
-            }
-        };
-
-        requestAnimationFrame(animate);
-    }, [value]);
-
-    return <span>{count.toLocaleString()}{suffix}</span>;
-};
-
-// Why Section Component
-const WhySection = () => {
-    const reasons = [
-        {
-            icon: (
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#00ff41" strokeWidth="2">
-                    <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-                </svg>
-            ),
-            title: 'Wysoka jakość',
-            description: 'Każdy skrypt jest dokładnie testowany i udokumentowany.',
-        },
-        {
-            icon: (
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#00d4ff" strokeWidth="2">
-                    <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
-                </svg>
-            ),
-            title: 'Szybkość',
-            description: 'Optymalizacja wydajności i minimalne opóźnienia.',
-        },
-        {
-            icon: (
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#bf00ff" strokeWidth="2">
-                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                </svg>
-            ),
-            title: 'Bezpieczeństwo',
-            description: 'Narzędzia są bezpieczne w użyciu i nie zawierają malware.',
-        },
-        {
-            icon: (
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#ff00ff" strokeWidth="2">
-                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                </svg>
-            ),
-            title: 'Wsparcie',
-            description: 'Szybka pomoc i odpowiedzi na pytania użytkowników.',
-        },
-        {
-            icon: (
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#00ff41" strokeWidth="2">
-                    <path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
-                </svg>
-            ),
-            title: 'Aktualizacje',
-            description: 'Regularne aktualizacje i nowe funkcje.',
-        },
-        {
-            icon: (
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#00d4ff" strokeWidth="2">
-                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 7a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm16 7v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
-                </svg>
-            ),
-            title: 'Społeczność',
-            description: 'Aktywna społeczność użytkowników i współpraca.',
-        },
-    ];
+function Navbar({ currentPage, setCurrentPage, status, onAdminClick, isAdmin }) {
+    const [scrolled, setScrolled] = useState(false);
+    const [open, setOpen] = useState(false);
+    useEffect(() => {
+        const onScroll = () => setScrolled(window.scrollY > 30);
+        window.addEventListener('scroll', onScroll, { passive: true });
+        return () => window.removeEventListener('scroll', onScroll);
+    }, []);
 
     return (
-        <section className="py-20">
-            <div className="container mx-auto px-4 transition-all duration-500">
-                <div
-                    className="text-center mb-16 transition-all duration-500"
-                >
-                    <h2 className="font-mono text-3xl md:text-4xl font-bold mb-4 neon-text">
-                        Dlaczego Goncik-tech?
-                    </h2>
-                    <p className="text-gray-400 max-w-2xl mx-auto">
-                        Odkryj zalety korzystania z naszych narzędzi i dołącz do społeczności.
-                    </p>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 transition-all duration-500">
-                    {reasons.map((reason, index) => {
-                        const [ref, isVisible] = useScrollReveal();
-
-                        return (
-                            <div
-                                ref={ref}
-                                style={{
-                                    opacity: isVisible ? 1 : 0,
-                                    transform: isVisible ? 'translateY(0) scale(1)' : 'translateY(30px) scale(0.9)',
-                                    transition: 'all 0.6s ease-out'
-                                }}
-                                className="glass-effect p-6 rounded-lg hover:scale-105 transition-transform duration-300"
+        <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? 'py-2' : 'py-4'}`}>
+            <div className={`mx-auto px-4 transition-all ${scrolled ? 'max-w-6xl' : 'max-w-7xl'}`}>
+                <div className={`glass rounded-2xl px-4 sm:px-5 py-3 flex items-center justify-between`}>
+                    <Logo onClick={() => setCurrentPage('home')} />
+                    <nav className="hidden lg:flex items-center gap-1">
+                        {NAV.map((item) => (
+                            <button
+                                key={item.id}
+                                onClick={() => setCurrentPage(item.id)}
+                                className={`relative px-3 py-1.5 rounded-md font-mono text-sm transition ${
+                                    currentPage === item.id
+                                        ? 'text-neon-green bg-neon-green/5'
+                                        : 'text-gray-300 hover:text-white hover:bg-white/5'
+                                }`}
                             >
-                                <div className="mb-4">{reason.icon}</div>
-                                <h3 className="font-mono text-xl font-bold text-neon-green mb-2">
-                                    {reason.title}
-                                </h3>
-                                <p className="text-gray-400">{reason.description}</p>
-                            </div>
-                        );
-                    })}
+                                {item.label}
+                                {currentPage === item.id && (
+                                    <span className="absolute left-3 right-3 -bottom-0.5 h-px bg-gradient-to-r from-transparent via-neon-green to-transparent" />
+                                )}
+                            </button>
+                        ))}
+                    </nav>
+                    <div className="flex items-center gap-2">
+                        <div className="hidden md:block"><StatusBadge status={status} /></div>
+                        <button
+                            onClick={onAdminClick}
+                            className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md font-mono text-xs border border-neon-green/40 text-neon-green hover:bg-neon-green/10 transition"
+                        >
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M12 1l3 6 6 1-4.5 4.5L18 19l-6-3-6 3 1.5-6.5L3 8l6-1z" />
+                            </svg>
+                            {isAdmin ? 'Panel' : 'Admin'}
+                        </button>
+                        <button onClick={() => setOpen((v) => !v)} className="lg:hidden p-2 rounded-md text-neon-green hover:bg-white/5" aria-label="Menu">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                {open ? <path d="M18 6L6 18M6 6l12 12" /> : <path d="M3 6h18M3 12h18M3 18h18" />}
+                            </svg>
+                        </button>
+                    </div>
                 </div>
+                {open && (
+                    <div className="lg:hidden mt-2 glass rounded-2xl p-2 menu-anim">
+                        {NAV.map((item) => (
+                            <button
+                                key={item.id}
+                                onClick={() => { setCurrentPage(item.id); setOpen(false); }}
+                                className={`w-full text-left px-3 py-2 rounded-md font-mono text-sm ${
+                                    currentPage === item.id ? 'text-neon-green bg-neon-green/10' : 'text-gray-200 hover:bg-white/5'
+                                }`}
+                            >{item.label}</button>
+                        ))}
+                        <button
+                            onClick={() => { onAdminClick(); setOpen(false); }}
+                            className="w-full text-left px-3 py-2 rounded-md font-mono text-sm text-neon-green hover:bg-neon-green/10"
+                        >{isAdmin ? 'Panel admina' : 'Logowanie admina'}</button>
+                    </div>
+                )}
             </div>
-        </section>
+        </header>
     );
-};
+}
 
-// Script Card Component
-const ScriptCard = ({ script, onClick }) => (
-    <div
-        onClick={onClick}
-        className="glass-effect rounded-lg p-6 cursor-pointer hover:neon-border transition-all duration-300 reveal transition-all duration-500"
-    >
-        <div className="flex items-start justify-between mb-4 transition-all duration-500">
-            <div className="flex items-center space-x-3 transition-all duration-500">
-                <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-neon-green to-neon-blue flex items-center justify-center transition-all duration-500">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0a0a0a" strokeWidth="2">
-                        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-                    </svg>
+function Footer({ isAdmin, onAdminClick, onLogout, status }) {
+    return (
+        <footer className="relative mt-24 border-t border-kali-border bg-kali-dark/50">
+            <div className="max-w-7xl mx-auto px-4 py-12 grid grid-cols-2 md:grid-cols-4 gap-8">
+                <div className="col-span-2">
+                    <Logo size="sm" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} />
+                    <p className="text-sm text-gray-400 mt-3 max-w-sm">
+                        Darmowe i płatne skrypty, bypassy do AI i inne narzędzia.
+                        Nowoczesne rozwiązania dla developerów.
+                    </p>
+                    <div className="flex items-center gap-3 mt-4">
+                        <a href="https://github.com/goncik-tech" target="_blank" rel="noreferrer" className="w-9 h-9 rounded-lg glass flex items-center justify-center text-gray-300 hover:text-neon-green hover-glow" aria-label="GitHub">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .3a12 12 0 0 0-3.8 23.4c.6.1.8-.3.8-.6v-2.2c-3.3.7-4-1.6-4-1.6-.5-1.3-1.3-1.7-1.3-1.7-1.1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1.1 1.8 2.8 1.3 3.5 1 .1-.8.4-1.3.8-1.6-2.7-.3-5.5-1.3-5.5-5.9 0-1.3.5-2.4 1.2-3.2-.1-.3-.5-1.5.1-3.2 0 0 1-.3 3.3 1.2a11.5 11.5 0 0 1 6 0c2.3-1.5 3.3-1.2 3.3-1.2.7 1.7.2 2.9.1 3.2.8.8 1.2 1.9 1.2 3.2 0 4.6-2.8 5.6-5.5 5.9.4.4.8 1.1.8 2.2v3.3c0 .3.2.7.8.6A12 12 0 0 0 12 .3"/></svg>
+                        </a>
+                        <a href="https://discord.gg/goncik-tech" target="_blank" rel="noreferrer" className="w-9 h-9 rounded-lg glass flex items-center justify-center text-gray-300 hover:text-neon-blue hover-glow" aria-label="Discord">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M20.3 4.4a19.8 19.8 0 0 0-4.9-1.5l-.2.4a18 18 0 0 1 4.4 1.4 16 16 0 0 0-15.2 0 18 18 0 0 1 4.4-1.4l-.2-.4A19.8 19.8 0 0 0 3.7 4.4 20 20 0 0 0 .1 17.7a20 20 0 0 0 6 3l1.2-1.7a13 13 0 0 1-2-.9l.5-.4a14 14 0 0 0 12.4 0l.5.4a13 13 0 0 1-2 .9l1.2 1.7a20 20 0 0 0 6-3 20 20 0 0 0-3.6-13.3zM8.5 15.1c-1.2 0-2.2-1.1-2.2-2.4s1-2.4 2.2-2.4 2.2 1.1 2.2 2.4-.9 2.4-2.2 2.4zm7 0c-1.2 0-2.2-1.1-2.2-2.4s1-2.4 2.2-2.4 2.2 1.1 2.2 2.4-1 2.4-2.2 2.4z"/></svg>
+                        </a>
+                    </div>
                 </div>
                 <div>
-                    <h3 className="font-mono font-bold text-lg text-white">{script.name}</h3>
-                    <span className="text-xs text-neon-green">{script.version}</span>
+                    <h4 className="font-mono font-bold text-white mb-3 text-sm">Narzędzia</h4>
+                    <ul className="space-y-2 text-sm">
+                        {NAV.slice(1, 4).map((i) => (
+                            <li key={i.id}><a onClick={() => window.dispatchEvent(new CustomEvent('nav', { detail: i.id }))} className="text-gray-400 hover:text-neon-green cursor-pointer">{i.label}</a></li>
+                        ))}
+                    </ul>
+                </div>
+                <div>
+                    <h4 className="font-mono font-bold text-white mb-3 text-sm">Zasoby</h4>
+                    <ul className="space-y-2 text-sm">
+                        {NAV.slice(4).map((i) => (
+                            <li key={i.id}><a onClick={() => window.dispatchEvent(new CustomEvent('nav', { detail: i.id }))} className="text-gray-400 hover:text-neon-blue cursor-pointer">{i.label}</a></li>
+                        ))}
+                    </ul>
                 </div>
             </div>
+            <div className="border-t border-kali-border">
+                <div className="max-w-7xl mx-auto px-4 py-5 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs font-mono text-gray-500">
+                    <div>© {new Date().getFullYear()} Goncik-tech. All rights reserved.</div>
+                    <div className="flex items-center gap-3">
+                        <StatusBadge status={status} />
+                        {isAdmin ? (
+                            <>
+                                <button onClick={onAdminClick} className="text-neon-green hover:text-neon-blue">Panel admina</button>
+                                <span className="text-gray-700">|</span>
+                                <button onClick={onLogout} className="text-red-400 hover:text-red-300">Wyloguj</button>
+                            </>
+                        ) : (
+                            <button onClick={onAdminClick} className="text-gray-500 hover:text-neon-green">Logowanie admina</button>
+                        )}
+                    </div>
+                </div>
+            </div>
+        </footer>
+    );
+}
 
-            {script.isFree ? (
-                <span className="px-3 py-1 text-xs font-mono bg-neon-green text-black rounded-full font-bold">
-                    FREE
+/* =========================================================
+   7. Pages
+   ========================================================= */
+function Hero({ setCurrentPage }) {
+    const phrases = useMemo(() => [
+        'skrypty, bypassy, narzędzia AI',
+        'nowoczesne narzędzia dla devów',
+        'bezpieczne. szybkie. open-source.',
+    ], []);
+    const [idx, setIdx] = useState(0);
+    const [text, setText] = useState('');
+    const [phase, setPhase] = useState('typing'); // typing | pause | deleting
+
+    useEffect(() => {
+        const current = phrases[idx];
+        let t;
+        if (phase === 'typing') {
+            if (text.length < current.length) t = setTimeout(() => setText(current.slice(0, text.length + 1)), 55);
+            else t = setTimeout(() => setPhase('pause'), 1400);
+        } else if (phase === 'pause') {
+            t = setTimeout(() => setPhase('deleting'), 200);
+        } else {
+            if (text.length > 0) t = setTimeout(() => setText(text.slice(0, -1)), 25);
+            else { setIdx((idx + 1) % phrases.length); setPhase('typing'); }
+        }
+        return () => clearTimeout(t);
+    }, [text, phase, idx, phrases]);
+
+    return (
+        <section className="relative min-h-screen flex items-center justify-center grid-bg overflow-hidden">
+            <div className="absolute inset-0 hero-bg" />
+            <div className="relative z-10 max-w-5xl mx-auto px-4 text-center pt-20">
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full glass mb-6 text-xs font-mono text-gray-300">
+                    <span className="dot dot-green"></span>
+                    <span>v3.0 — Nowy panel admina z zapisem do bazy</span>
+                </div>
+                <h1 className="font-extrabold text-4xl sm:text-6xl md:text-7xl leading-tight tracking-tight">
+                    <span className="block text-white">Witaj w</span>
+                    <span className="gradient-text animate-gradient-x bg-[length:200%_200%]">goncik-tech</span>
+                </h1>
+                <p className="mt-6 text-lg sm:text-xl text-gray-300 font-mono min-h-[2.5rem]">
+                    <span className="text-neon-green">{text}</span>
+                    <span className="typing-cursor"></span>
+                </p>
+                <p className="mt-4 text-gray-400 max-w-2xl mx-auto">
+                    Darmowe i płatne skrypty, bypassy do AI i inne narzędzia.
+                    Zautomatyzuj swój workflow i zwiększ efektywność.
+                </p>
+                <div className="mt-8 flex flex-wrap gap-3 justify-center">
+                    <button onClick={() => setCurrentPage('scripts')} className="btn-primary inline-flex items-center gap-2">
+                        <span>Przeglądaj skrypty</span>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                    </button>
+                    <button onClick={() => setCurrentPage('tutorials')} className="btn-ghost">Zobacz tutoriale</button>
+                </div>
+                <div className="mt-12 grid grid-cols-2 md:grid-cols-4 gap-4 max-w-3xl mx-auto">
+                    {[
+                        { v: '15+', l: 'Skryptów' },
+                        { v: '5k+', l: 'Pobrań' },
+                        { v: '2k+', l: 'Użytkowników' },
+                        { v: '10+', l: 'Tutoriali' },
+                    ].map((s) => (
+                        <div key={s.l} className="glass rounded-xl p-4">
+                            <div className="font-mono text-2xl font-bold text-neon-green">{s.v}</div>
+                            <div className="text-xs text-gray-400 font-mono">{s.l}</div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 text-neon-green animate-bounce">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M7 13l5 5 5-5M7 6l5 5 5-5"/></svg>
+            </div>
+        </section>
+    );
+}
+
+function ScriptCard({ script, onClick, compact = false }) {
+    return (
+        <div onClick={onClick} className={`glass rounded-xl p-5 cursor-pointer card-hover group ${compact ? '' : ''}`}>
+            <div className="flex items-start justify-between gap-3 mb-3">
+                <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-neon-green to-neon-blue flex items-center justify-center text-black font-bold">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+                    </div>
+                    <div className="min-w-0">
+                        <div className="font-mono font-bold text-white truncate group-hover:text-neon-green transition">{script.name}</div>
+                        <div className="text-[11px] font-mono text-gray-500">v{script.version} • {script.lastUpdated}</div>
+                    </div>
+                </div>
+                <span className={`px-2 py-0.5 text-[10px] font-mono rounded-full font-bold ${script.isFree ? 'bg-neon-green text-black' : 'bg-neon-blue text-black'}`}>
+                    {script.isFree ? 'FREE' : 'PREMIUM'}
                 </span>
+            </div>
+            <p className="text-sm text-gray-400 line-clamp-2 mb-3">{script.description}</p>
+            <div className="flex flex-wrap gap-1.5 mb-3">
+                {(script.tags || []).slice(0, 3).map((t, i) => (
+                    <span key={i} className="chip">{t}</span>
+                ))}
+            </div>
+            <div className="flex items-center justify-between text-xs font-mono text-gray-400">
+                <div className="flex items-center gap-3">
+                    <span className="flex items-center gap-1"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13"/></svg>{(script.downloads || 0).toLocaleString()}</span>
+                    <span className="flex items-center gap-1 text-neon-yellow"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3 7h7l-5.5 4 2 7L12 16l-6.5 4 2-7L2 9h7z"/></svg>{script.rating || '—'}</span>
+                </div>
+                <span className="text-neon-green group-hover:translate-x-1 transition">Więcej →</span>
+            </div>
+        </div>
+    );
+}
+
+function ScriptsPage({ scripts, setCurrentPage, setSelected, filter = 'all' }) {
+    const [category, setCategory] = useState('all');
+    const [price, setPrice] = useState('all');
+    const [q, setQ] = useState('');
+
+    let base = scripts;
+    if (filter === 'bypass') base = base.filter((s) => s.category === 'bypass');
+    if (filter === 'free') base = base.filter((s) => s.isFree);
+
+    const filtered = base.filter((s) => {
+        if (category !== 'all' && s.category !== category) return false;
+        if (price === 'free' && !s.isFree) return false;
+        if (price === 'premium' && s.isFree) return false;
+        if (q) {
+            const Q = q.toLowerCase();
+            const hay = `${s.name} ${s.description} ${(s.tags || []).join(' ')}`.toLowerCase();
+            if (!hay.includes(Q)) return false;
+        }
+        return true;
+    });
+
+    return (
+        <div className="max-w-7xl mx-auto px-4 pt-28 pb-16">
+            <header className="mb-8">
+                <h1 className="text-3xl sm:text-4xl font-bold gradient-text">
+                    {filter === 'bypass' ? 'Bypassy AI' : filter === 'free' ? 'Darmowe skrypty' : 'Wszystkie skrypty'}
+                </h1>
+                <p className="text-gray-400 mt-2">Przeglądaj całą kolekcję narzędzi — od skryptów po boty.</p>
+            </header>
+            <div className="glass rounded-xl p-4 mb-6 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                    <label className="block text-xs font-mono text-gray-400 mb-1.5">Kategoria</label>
+                    <select className="field" value={category} onChange={(e) => setCategory(e.target.value)}>
+                        <option value="all">Wszystkie</option>
+                        <option value="bypass">bypass</option>
+                        <option value="script">script</option>
+                        <option value="bot">bot</option>
+                        <option value="tool">tool</option>
+                        <option value="generator">generator</option>
+                    </select>
+                </div>
+                <div>
+                    <label className="block text-xs font-mono text-gray-400 mb-1.5">Cena</label>
+                    <select className="field" value={price} onChange={(e) => setPrice(e.target.value)}>
+                        <option value="all">Wszystkie</option>
+                        <option value="free">Darmowe</option>
+                        <option value="premium">Premium</option>
+                    </select>
+                </div>
+                <div>
+                    <label className="block text-xs font-mono text-gray-400 mb-1.5">Szukaj</label>
+                    <input className="field" placeholder="nazwa, opis, tag…" value={q} onChange={(e) => setQ(e.target.value)} />
+                </div>
+            </div>
+            <div className="text-sm font-mono text-gray-400 mb-4">
+                Znaleziono <span className="text-neon-green">{filtered.length}</span> skryptów
+            </div>
+            {filtered.length === 0 ? (
+                <div className="glass rounded-xl p-12 text-center text-gray-400 font-mono">Brak wyników dla podanych filtrów.</div>
             ) : (
-                <span className="px-3 py-1 text-xs font-mono bg-neon-blue text-black rounded-full font-bold">
-                    PREMIUM
-                </span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {filtered.map((s) => (
+                        <ScriptCard key={s.id} script={s} onClick={() => { setSelected(s); setCurrentPage('script-detail'); }} />
+                    ))}
+                </div>
             )}
         </div>
+    );
+}
 
-        <p className="text-gray-400 text-sm mb-4 line-clamp-2">{script.description}</p>
-
-        <div className="flex flex-wrap gap-2 mb-4 transition-all duration-500">
-            {script.tags.slice(0, 3).map((tag, index) => (
-                <span
-                    className="px-2 py-1 text-xs font-mono bg-kali-border text-gray-300 rounded"
-                >
-                    {tag}
-                </span>
-            ))}
+function ScriptDetailPage({ script, setCurrentPage }) {
+    if (!script) return (
+        <div className="max-w-3xl mx-auto px-4 pt-28 pb-16 text-center">
+            <p className="text-gray-400 font-mono">Nie znaleziono skryptu.</p>
+            <button onClick={() => setCurrentPage('scripts')} className="mt-4 btn-ghost">Wróć do listy</button>
         </div>
-
-        <div className="flex items-center justify-between text-sm transition-all duration-500">
-            <div className="flex items-center space-x-4 text-gray-400 transition-all duration-500">
-                <span className="flex items-center space-x-1">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13" />
-                    </svg>
-                    <span>{script.downloads.toLocaleString()}</span>
-                </span>
-                <span className="flex items-center space-x-1">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-                    </svg>
-                    <span>{script.rating}</span>
-                </span>
-            </div>
-
-            <button className="text-neon-green hover:text-neon-blue transition-colors font-mono text-sm flex items-center space-x-1">
-                <span>Więcej</span>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M5 12h14M12 5l7 7-7 7" />
-                </svg>
+    );
+    return (
+        <div className="max-w-6xl mx-auto px-4 pt-28 pb-16">
+            <button onClick={() => setCurrentPage('scripts')} className="mb-6 font-mono text-sm text-gray-400 hover:text-neon-green inline-flex items-center gap-1">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>Wróć do skryptów
             </button>
-        </div>
-    </div>
-);
-
-// Featured Scripts Component
-const FeaturedScripts = ({ setCurrentPage, setSelectedScript }) => {
-    const featuredScripts = scripts.filter(script => script.featured).slice(0, 3);
-
-    return (
-        <section className="py-20">
-            <div className="container mx-auto px-4 transition-all duration-500">
-                <div
-                    className="text-center mb-16 transition-all duration-500"
-                >
-                    <h2 className="font-mono text-3xl md:text-4xl font-bold mb-4 neon-text">
-                        Polecane skrypty
-                    </h2>
-                    <p className="text-gray-400 max-w-2xl mx-auto">
-                        Sprawdź nasze najpopularniejsze i najczęściej używane narzędzia.
-                    </p>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 transition-all duration-500">
-                    {featuredScripts.map((script) => (
-                        <ScriptCard
-                            script={script}
-                            onClick={() => {
-                                setSelectedScript(script);
-                                setCurrentPage('script-detail');
-                            }}
-                        />
-                    ))}
-                </div>
-
-                <div className="text-center mt-12 transition-all duration-500">
-                    <button
-                        onClick={() => setCurrentPage('scripts')}
-                        className="font-mono px-8 py-3 border-2 border-neon-green text-neon-green rounded-lg hover:bg-neon-green hover:text-black transition-colors"
-                    >
-                        Zobacz wszystkie skrypty
-                    </button>
-                </div>
-            </div>
-        </section>
-    );
-};
-
-// Latest Tutorials Component
-const LatestTutorials = ({ setCurrentPage, setSelectedTutorial }) => {
-    const latestTutorials = tutorials.filter(t => t.featured).slice(0, 3);
-
-    return (
-        <section className="py-20 bg-kali-dark">
-            <div className="container mx-auto px-4 transition-all duration-500">
-                <div
-                    className="text-center mb-16 transition-all duration-500"
-                >
-                    <h2 className="font-mono text-3xl md:text-4xl font-bold mb-4 neon-text">
-                        Ostatnie na blogu
-                    </h2>
-                    <p className="text-gray-400 max-w-2xl mx-auto">
-                        Nowoczesne tutoriale i poradniki do naszych narzędzi.
-                    </p>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 transition-all duration-500">
-                    {latestTutorials.map((tutorial) => {
-                        const [ref, isVisible] = useScrollReveal();
-
-                        return (
-                            <div
-                                ref={ref}
-                                style={{
-                                    opacity: isVisible ? 1 : 0,
-                                    transform: isVisible ? 'translateY(0) scale(1)' : 'translateY(30px) scale(0.9)',
-                                    transition: 'all 0.6s ease-out'
-                                }}
-                                className="glass-effect rounded-lg p-6 cursor-pointer hover:neon-border transition-all duration-300"
-                                onClick={() => {
-                                    setSelectedTutorial(tutorial);
-                                    setCurrentPage('tutorial-detail');
-                                }}
-                            >
-                                <div className="flex items-center space-x-2 mb-4">
-                                    <span className="px-3 py-1 text-xs font-mono bg-neon-blue text-black rounded-full">
-                                        {tutorial.category}
-                                    </span>
-                                    <span className="text-xs text-gray-500 font-mono">
-                                        {tutorial.readTime}
-                                    </span>
-                                </div>
-
-                                <h3 className="font-mono font-bold text-lg text-white mb-2 line-clamp-2">
-                                    {tutorial.title}
-                                </h3>
-
-                                <p className="text-gray-400 text-sm mb-4 line-clamp-2">
-                                    {tutorial.excerpt}
-                                </p>
-
-                                <div className="flex items-center justify-between text-sm transition-all duration-500">
-                                    <span className="text-gray-500 font-mono">
-                                        {tutorial.date}
-                                    </span>
-                                    <button className="text-neon-green hover:text-neon-blue transition-colors font-mono text-sm flex items-center space-x-1">
-                                        <span>Czytaj</span>
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                            <path d="M5 12h14M12 5l7 7-7 7" />
-                                        </svg>
-                                    </button>
-                                </div>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-2 glass rounded-2xl p-6 sm:p-8">
+                    <div className="flex items-start justify-between gap-3 mb-4">
+                        <div>
+                            <h1 className="font-mono text-2xl sm:text-3xl font-bold text-white">{script.name}</h1>
+                            <div className="text-sm text-gray-400 font-mono mt-1 flex flex-wrap gap-3">
+                                <span>v{script.version}</span>
+                                <span>{(script.downloads || 0).toLocaleString()} pobrań</span>
+                                <span>★ {script.rating || '—'}</span>
+                                <span>{script.lastUpdated}</span>
                             </div>
-                        );
-                    })}
-                </div>
-
-                <div className="text-center mt-12 transition-all duration-500">
-                    <button
-                        onClick={() => setCurrentPage('tutorials')}
-                        className="font-mono px-8 py-3 border-2 border-neon-green text-neon-green rounded-lg hover:bg-neon-green hover:text-black transition-colors"
-                    >
-                        Zobacz wszystkie tutoriale
-                    </button>
-                </div>
-            </div>
-        </section>
-    );
-};
-
-// ============================================
-// PAGE COMPONENTS
-// ============================================
-
-// Home Page
-const HomePage = ({ setCurrentPage, setSelectedScript, setSelectedTutorial }) => (
-    <div
-    >
-        <Hero setCurrentPage={setCurrentPage} />
-        <StatsBar />
-        <FeaturedScripts setCurrentPage={setCurrentPage} setSelectedScript={setSelectedScript} />
-        <WhySection />
-        <LatestTutorials setCurrentPage={setCurrentPage} setSelectedTutorial={setSelectedTutorial} />
-    </div>
-);
-
-// Scripts Page
-const ScriptsPage = ({ setCurrentPage, setSelectedScript, filteredScripts }) => {
-    const [categoryFilter, setCategoryFilter] = React.useState('all');
-    const [freeFilter, setFreeFilter] = React.useState('all');
-    const [searchQuery, setSearchQuery] = React.useState('');
-
-    const categories = ['all', 'bypass', 'script', 'bot', 'tool', 'generator'];
-
-    const filtered = filteredScripts.filter(script => {
-        const matchesCategory = categoryFilter === 'all' || script.category === categoryFilter;
-        const matchesFree = freeFilter === 'all' ||
-            (freeFilter === 'free' && script.isFree) ||
-            (freeFilter === 'premium' && !script.isFree);
-        const matchesSearch = searchQuery === '' ||
-            script.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            script.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            script.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
-
-        return matchesCategory && matchesFree && matchesSearch;
-    });
-
-    return (
-        <div
-            className="min-h-screen pt-24 pb-12 transition-all duration-500"
-        >
-            <div className="container mx-auto px-4 transition-all duration-500">
-                <div
-                    className="text-center mb-12 transition-all duration-500"
-                >
-                    <h1 className="font-mono text-4xl md:text-5xl font-bold mb-4 neon-text">
-                        Wszystkie skrypty
-                    </h1>
-                    <p className="text-gray-400 max-w-2xl mx-auto">
-                        Przeglądaj całą kolekcję narzędzi — od skryptów do botów.
-                    </p>
-                </div>
-
-                {/* Filters */}
-                <div
-                    className="glass-effect p-6 rounded-lg mb-8 transition-all duration-500"
-                >
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 transition-all duration-500">
-                        {/* Category Filter */}
-                        <div>
-                            <label className="block text-sm font-mono text-gray-400 mb-2">Kategoria</label>
-                            <select
-                                value={categoryFilter}
-                                onChange={(e) => setCategoryFilter(e.target.value)}
-                                className="w-full bg-kali-black border border-kali-border rounded px-4 py-2 text-white font-mono focus:outline-none focus:border-neon-green"
-                            >
-                                <option value="all">Wszystkie</option>
-                                {categories.map(cat => (
-                                    <option value={cat}>{cat}</option>
-                                ))}
-                            </select>
                         </div>
-
-                        {/* Free Filter */}
-                        <div>
-                            <label className="block text-sm font-mono text-gray-400 mb-2">Cena</label>
-                            <select
-                                value={freeFilter}
-                                onChange={(e) => setFreeFilter(e.target.value)}
-                                className="w-full bg-kali-black border border-kali-border rounded px-4 py-2 text-white font-mono focus:outline-none focus:border-neon-green"
-                            >
-                                <option value="all">Wszystkie</option>
-                                <option value="free">Darmowe</option>
-                                <option value="premium">Premium</option>
-                            </select>
-                        </div>
-
-                        {/* Search */}
-                        <div>
-                            <label className="block text-sm font-mono text-gray-400 mb-2">Szukaj</label>
-                            <input
-                                type="text"
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                placeholder="Nazwa, opis, tagi..."
-                                className="w-full bg-kali-black border border-kali-border rounded px-4 py-2 text-white font-mono focus:outline-none focus:border-neon-green"
-                            />
-                        </div>
+                        <span className={`px-3 py-1 text-xs font-mono rounded-full font-bold ${script.isFree ? 'bg-neon-green text-black' : 'bg-neon-blue text-black'}`}>
+                            {script.isFree ? 'FREE' : 'PREMIUM'}
+                        </span>
                     </div>
+                    <p className="text-gray-300 mb-6">{script.description}</p>
+                    <Section title="Funkcje" items={script.features} icon="check" />
+                    <Section title="Wymagania" items={script.requirements} icon="cube" />
+                    {script.tags?.length > 0 && (
+                        <div className="mt-6">
+                            <h3 className="font-mono text-sm font-bold text-neon-green mb-2">Tagi</h3>
+                            <div className="flex flex-wrap gap-1.5">
+                                {script.tags.map((t, i) => <span key={i} className="chip">{t}</span>)}
+                            </div>
+                        </div>
+                    )}
                 </div>
-
-                {/* Results Count */}
-                <div className="mb-6 transition-all duration-500">
-                    <p className="text-gray-400 font-mono">
-                        Znaleziono <span className="text-neon-green">{filtered.length}</span> skryptów
-                    </p>
-                </div>
-
-                {/* Scripts Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 transition-all duration-500">
-                    {filtered.map((script) => (
-                        <ScriptCard
-                            script={script}
-                            onClick={() => {
-                                setSelectedScript(script);
-                                setCurrentPage('script-detail');
-                            }}
-                        />
-                    ))}
-                </div>
-
-                {filtered.length === 0 && (
-                    <div className="text-center py-12 transition-all duration-500">
-                        <p className="text-gray-400 font-mono">
-                            Brak wyników dla podanych filtrów.
-                        </p>
+                <aside>
+                    <div className="glass rounded-2xl p-6 sticky top-24">
+                        <h3 className="font-mono font-bold text-white mb-4">Pobierz</h3>
+                        <a href={script.downloadUrl} target="_blank" rel="noreferrer" className="block w-full btn-primary text-center mb-3">
+                            Pobierz {script.isFree ? 'za darmo' : ''}
+                        </a>
+                        <a href={script.downloadUrl} target="_blank" rel="noreferrer" className="block w-full btn-ghost text-center text-sm">
+                            Zobacz na GitHub
+                        </a>
+                        <hr className="border-kali-border my-4" />
+                        <dl className="text-sm space-y-2 font-mono">
+                            <div className="flex justify-between"><dt className="text-gray-400">Autor</dt><dd className="text-white">{script.author}</dd></div>
+                            <div className="flex justify-between"><dt className="text-gray-400">Wersja</dt><dd className="text-white">{script.version}</dd></div>
+                            <div className="flex justify-between"><dt className="text-gray-400">Aktualizacja</dt><dd className="text-white">{script.lastUpdated}</dd></div>
+                        </dl>
                     </div>
-                )}
+                </aside>
             </div>
         </div>
     );
-};
+}
 
-// Bypassy Page
-const BypassyPage = ({ setCurrentPage, setSelectedScript }) => (
-    <ScriptsPage
-        setCurrentPage={setCurrentPage}
-        setSelectedScript={setSelectedScript}
-        filteredScripts={scripts.filter(script => script.category === 'bypass')}
-    />
-);
-
-// Free Scripts Page
-const FreeScriptsPage = ({ setCurrentPage, setSelectedScript }) => (
-    <ScriptsPage
-        setCurrentPage={setCurrentPage}
-        setSelectedScript={setSelectedScript}
-        filteredScripts={scripts.filter(script => script.isFree)}
-    />
-);
-
-// Script Detail Page
-const ScriptDetailPage = ({ script, setCurrentPage }) => {
-    if (!script) {
-        return (
-            <div
-                className="min-h-screen pt-24 pb-12 transition-all duration-500"
-            >
-                <div className="container mx-auto px-4 text-center transition-all duration-500">
-                    <p className="text-gray-400 font-mono">Nie znaleziono skryptu.</p>
-                    <button
-                        onClick={() => setCurrentPage('scripts')}
-                        className="mt-4 font-mono text-neon-green hover:text-neon-blue"
-                    >
-                        Wróć do listy
-                    </button>
-                </div>
-            </div>
-        );
-    }
-
+function Section({ title, items, icon }) {
+    if (!items || items.length === 0) return null;
+    const stroke = icon === 'check' ? '#00ff41' : '#00d4ff';
     return (
-        <div
-            className="min-h-screen pt-24 pb-12 transition-all duration-500"
-        >
-            <div className="container mx-auto px-4 transition-all duration-500">
-                <button
-                    onClick={() => setCurrentPage('scripts')}
-                    className="mb-8 font-mono text-gray-400 hover:text-neon-green flex items-center space-x-2"
-                >
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M19 12H5M12 19l-7-7 7-7" />
-                    </svg>
-                    <span>Wróć do skryptów</span>
-                </button>
-
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 transition-all duration-500">
-                    <div className="lg:col-span-2 transition-all duration-500">
-                        <div
-                            className="glass-effect rounded-lg p-8 transition-all duration-500"
-                        >
-                            <div className="flex items-start justify-between mb-6 transition-all duration-500">
-                                <div>
-                                    <div className="flex items-center space-x-3 mb-2 transition-all duration-500">
-                                        <h1 className="font-mono text-3xl md:text-4xl font-bold neon-text">
-                                            {script.name}
-                                        </h1>
-                                        <span className="text-neon-green font-mono text-sm">
-                                            v{script.version}
-                                        </span>
-                                    </div>
-                                    <div className="flex items-center space-x-4 text-sm text-gray-400 transition-all duration-500">
-                                        <span className="flex items-center space-x-1">
-                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-                                            </svg>
-                                            <span>{script.downloads.toLocaleString()} pobrań</span>
-                                        </span>
-                                        <span className="flex items-center space-x-1">
-                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-                                            </svg>
-                                            <span>{script.rating} / 5</span>
-                                        </span>
-                                        <span className="font-mono">{script.lastUpdated}</span>
-                                    </div>
-                                </div>
-
-                                {script.isFree ? (
-                                    <span className="px-4 py-2 text-sm font-mono bg-neon-green text-black rounded-full font-bold">
-                                        FREE
-                                    </span>
-                                ) : (
-                                    <span className="px-4 py-2 text-sm font-mono bg-neon-blue text-black rounded-full font-bold">
-                                        PREMIUM
-                                    </span>
-                                )}
-                            </div>
-
-                            <p className="text-gray-300 mb-6">{script.description}</p>
-
-                            <div className="mb-6 transition-all duration-500">
-                                <h3 className="font-mono text-xl font-bold text-neon-green mb-3">
-                                    Funkcje
-                                </h3>
-                                <ul className="space-y-2">
-                                    {script.features.map((feature, index) => (
-                                        <li className="flex items-center space-x-2 text-gray-300">
-                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#00ff41" strokeWidth="2">
-                                                <path d="M20 6L9 17l-5-5" />
-                                            </svg>
-                                            <span>{feature}</span>
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
-
-                            <div className="mb-6 transition-all duration-500">
-                                <h3 className="font-mono text-xl font-bold text-neon-green mb-3">
-                                    Wymagania
-                                </h3>
-                                <ul className="space-y-2">
-                                    {script.requirements.map((req, index) => (
-                                        <li className="flex items-center space-x-2 text-gray-300">
-                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#00d4ff" strokeWidth="2">
-                                                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-                                            </svg>
-                                            <span className="font-mono text-sm">{req}</span>
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
-
-                            <div>
-                                <h3 className="font-mono text-xl font-bold text-neon-green mb-3">
-                                    Tagi
-                                </h3>
-                                <div className="flex flex-wrap gap-2 transition-all duration-500">
-                                    {script.tags.map((tag, index) => (
-                                        <span
-                                            className="px-3 py-1 text-xs font-mono bg-kali-border text-gray-300 rounded"
-                                        >
-                                            {tag}
-                                        </span>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div>
-                        <div
-                            className="glass-effect rounded-lg p-6 sticky top-24 transition-all duration-500"
-                        >
-                            <h3 className="font-mono text-xl font-bold text-white mb-4">
-                                Pobierz
-                            </h3>
-
-                            <a
-                                href={script.downloadUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="block w-full font-mono px-6 py-4 bg-neon-green text-black text-center font-bold rounded-lg hover:bg-neon-blue transition-colors mb-3 neon-border"
-                            >
-                                Pobierz za darmo
-                            </a>
-
-                            <div className="border-t border-kali-border pt-4 mt-4 transition-all duration-500">
-                                <p className="text-sm text-gray-400 mb-2">
-                                    Autor: <span className="text-white font-mono">{script.author}</span>
-                                </p>
-                                <p className="text-sm text-gray-400 mb-2">
-                                    Wersja: <span className="text-white font-mono">{script.version}</span>
-                                </p>
-                                <p className="text-sm text-gray-400">
-                                    Aktualizacja: <span className="text-white font-mono">{script.lastUpdated}</span>
-                                </p>
-                            </div>
-
-                            <div className="border-t border-kali-border pt-4 mt-4 transition-all duration-500">
-                                <h4 className="font-mono text-sm font-bold text-white mb-3">
-                                    Udostępnij
-                                </h4>
-                                <div className="flex space-x-2 transition-all duration-500">
-                                    <button className="p-2 bg-kali-border rounded hover:bg-neon-green hover:text-black transition-colors">
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                                            <path d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-1.29 2.213-.669 5.108 1.523 6.574-.806-.026-1.566-.247-2.229-.616-.054 2.281 1.581 4.415 3.949 4.89-.693.188-1.452.232-2.224.084.626 1.956 2.444 3.379 4.6 3.419-2.07 1.623-4.678 2.348-7.29 2.04 2.179 1.397 4.768 2.212 7.548 2.212 9.142 0 14.307-7.721 13.995-14.646.962-.695 1.797-1.562 2.457-2.549z"/>
-                                        </svg>
-                                    </button>
-                                    <button className="p-2 bg-kali-border rounded hover:bg-neon-green hover:text-black transition-colors">
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                                            <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405 1.02 0 2.04.135 3 .405 2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
-                                        </svg>
-                                    </button>
-                                    <button className="p-2 bg-kali-border rounded hover:bg-neon-green hover:text-black transition-colors">
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                                            <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/>
-                                        </svg>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+        <div className="mt-6">
+            <h3 className="font-mono text-sm font-bold text-neon-green mb-2">{title}</h3>
+            <ul className="space-y-2">
+                {items.map((it, i) => (
+                    <li key={i} className="flex items-start gap-2 text-gray-300 text-sm">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth="2" className="mt-0.5 flex-shrink-0">
+                            {icon === 'check' ? <path d="M20 6L9 17l-5-5"/> : <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>}
+                        </svg>
+                        <span>{it}</span>
+                    </li>
+                ))}
+            </ul>
         </div>
     );
-};
+}
 
-// Tutorials Page
-const TutorialsPage = ({ setCurrentPage, setSelectedTutorial }) => {
-    const [categoryFilter, setCategoryFilter] = React.useState('all');
-    const [searchQuery, setSearchQuery] = React.useState('');
-
-    const categories = ['all', 'bypass', 'script', 'bot', 'tool'];
-
-    const filtered = tutorials.filter(tutorial => {
-        const matchesCategory = categoryFilter === 'all' || tutorial.category === categoryFilter;
-        const matchesSearch = searchQuery === '' ||
-            tutorial.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            tutorial.excerpt.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            tutorial.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
-
-        return matchesCategory && matchesSearch;
-    });
-
+function TutorialsPage({ tutorials, setCurrentPage, setSelectedTutorial }) {
+    const featured = tutorials.filter((t) => t.featured);
     return (
-        <div
-            className="min-h-screen pt-24 pb-12 transition-all duration-500"
-        >
-            <div className="container mx-auto px-4 transition-all duration-500">
-                <div
-                    className="text-center mb-12 transition-all duration-500"
-                >
-                    <h1 className="font-mono text-4xl md:text-5xl font-bold mb-4 neon-text">
-                        Tutoriale i poradniki
-                    </h1>
-                    <p className="text-gray-400 max-w-2xl mx-auto">
-                        Przeglądaj szczegółowe tutoriale do wszystkich naszych narzędzi.
-                    </p>
-                </div>
-
-                {/* Filters */}
-                <div
-                    className="glass-effect p-6 rounded-lg mb-8 transition-all duration-500"
-                >
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 transition-all duration-500">
-                        {/* Category Filter */}
-                        <div>
-                            <label className="block text-sm font-mono text-gray-400 mb-2">Kategoria</label>
-                            <select
-                                value={categoryFilter}
-                                onChange={(e) => setCategoryFilter(e.target.value)}
-                                className="w-full bg-kali-black border border-kali-border rounded px-4 py-2 text-white font-mono focus:outline-none focus:border-neon-green"
-                            >
-                                <option value="all">Wszystkie</option>
-                                {categories.map(cat => (
-                                    <option value={cat}>{cat}</option>
-                                ))}
-                            </select>
-                        </div>
-
-                        {/* Search */}
-                        <div>
-                            <label className="block text-sm font-mono text-gray-400 mb-2">Szukaj</label>
-                            <input
-                                type="text"
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                placeholder="Tytuł, opis, tagi..."
-                                className="w-full bg-kali-black border border-kali-border rounded px-4 py-2 text-white font-mono focus:outline-none focus:border-neon-green"
-                            />
-                        </div>
-                    </div>
-                </div>
-
-                {/* Results Count */}
-                <div className="mb-6 transition-all duration-500">
-                    <p className="text-gray-400 font-mono">
-                        Znaleziono <span className="text-neon-green">{filtered.length}</span> tutoriale
-                    </p>
-                </div>
-
-                {/* Tutorials Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 transition-all duration-500">
-                    {filtered.map((tutorial) => (
-                        <div
-                            className="glass-effect rounded-lg p-6 cursor-pointer hover:neon-border transition-all duration-300 transition-all duration-500"
-                            onClick={() => {
-                                setSelectedTutorial(tutorial);
-                                setCurrentPage('tutorial-detail');
-                            }}
-                        >
-                            <div className="flex items-center space-x-2 mb-4 transition-all duration-500">
-                                <span className="px-3 py-1 text-xs font-mono bg-neon-blue text-black rounded-full">
-                                    {tutorial.category}
-                                </span>
-                                <span className="text-xs text-gray-500 font-mono">
-                                    {tutorial.readTime}
-                                </span>
+        <div className="max-w-6xl mx-auto px-4 pt-28 pb-16">
+            <header className="mb-8">
+                <h1 className="text-3xl sm:text-4xl font-bold gradient-text">Tutoriale</h1>
+                <p className="text-gray-400 mt-2">Poradniki, konfiguracje krok po kroku i best practices.</p>
+            </header>
+            {tutorials.length === 0 ? (
+                <div className="glass rounded-xl p-12 text-center text-gray-400 font-mono">Brak tutoriali. Dodaj je w panelu admina.</div>
+            ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {tutorials.map((t) => (
+                        <div key={t.id} onClick={() => { setSelectedTutorial(t); setCurrentPage('tutorial-detail'); }} className="glass rounded-xl p-5 card-hover cursor-pointer group">
+                            <div className="flex items-center gap-2 mb-3">
+                                <span className="chip-blue">{t.category}</span>
+                                <span className="text-[11px] font-mono text-gray-500">{t.readTime}</span>
                             </div>
-
-                            <h3 className="font-mono font-bold text-lg text-white mb-2 line-clamp-2">
-                                {tutorial.title}
-                            </h3>
-
-                            <p className="text-gray-400 text-sm mb-4 line-clamp-3">
-                                {tutorial.excerpt}
-                            </p>
-
-                            <div className="flex items-center justify-between text-sm mb-4 transition-all duration-500">
-                                <span className="text-gray-500 font-mono">
-                                    {tutorial.date}
-                                </span>
-                            </div>
-
-                            <div className="flex flex-wrap gap-2 transition-all duration-500">
-                                {tutorial.tags.slice(0, 3).map((tag, index) => (
-                                    <span
-                                        className="px-2 py-1 text-xs font-mono bg-kali-border text-gray-300 rounded"
-                                    >
-                                        {tag}
-                                    </span>
-                                ))}
+                            <h3 className="font-mono font-bold text-white mb-2 line-clamp-2 group-hover:text-neon-blue transition">{t.title}</h3>
+                            <p className="text-sm text-gray-400 line-clamp-2 mb-3">{t.excerpt}</p>
+                            <div className="text-[11px] font-mono text-gray-500 flex items-center justify-between">
+                                <span>{t.date}</span>
+                                <span className="text-neon-green group-hover:translate-x-1 transition">Czytaj →</span>
                             </div>
                         </div>
                     ))}
                 </div>
-
-                {filtered.length === 0 && (
-                    <div className="text-center py-12 transition-all duration-500">
-                        <p className="text-gray-400 font-mono">
-                            Brak wyników dla podanych filtrów.
-                        </p>
-                    </div>
-                )}
-            </div>
+            )}
         </div>
     );
-};
+}
 
-// Tutorial Detail Page
-const TutorialDetailPage = ({ tutorial, setCurrentPage }) => {
-    if (!tutorial) {
-        return (
-            <div
-                className="min-h-screen pt-24 pb-12 transition-all duration-500"
-            >
-                <div className="container mx-auto px-4 text-center transition-all duration-500">
-                    <p className="text-gray-400 font-mono">Nie znaleziono tutoriala.</p>
-                    <button
-                        onClick={() => setCurrentPage('tutorials')}
-                        className="mt-4 font-mono text-neon-green hover:text-neon-blue"
-                    >
-                        Wróć do listy
-                    </button>
-                </div>
-            </div>
-        );
-    }
-
-    React.useEffect(() => {
-        window.scrollTo(0, 0);
-    }, []);
-
+function TutorialDetailPage({ tutorial, setCurrentPage }) {
+    if (!tutorial) return null;
     return (
-        <div
-            className="min-h-screen pt-24 pb-12 transition-all duration-500"
-        >
-            <div className="container mx-auto px-4 transition-all duration-500">
-                <button
-                    onClick={() => setCurrentPage('tutorials')}
-                    className="mb-8 font-mono text-gray-400 hover:text-neon-green flex items-center space-x-2"
-                >
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M19 12H5M12 19l-7-7 7-7" />
-                    </svg>
-                    <span>Wróć do tutoriale</span>
-                </button>
-
-                <motion.article
-                    className="max-w-4xl mx-auto"
-                >
-                    <header className="mb-8">
-                        <div className="flex items-center space-x-3 mb-4 transition-all duration-500">
-                            <span className="px-3 py-1 text-sm font-mono bg-neon-blue text-black rounded-full">
-                                {tutorial.category}
-                            </span>
-                            <span className="text-sm text-gray-500 font-mono">
-                                {tutorial.readTime}
-                            </span>
-                            <span className="text-sm text-gray-500 font-mono">
-                                {tutorial.date}
-                            </span>
-                        </div>
-
-                        <h1 className="font-mono text-3xl md:text-4xl font-bold mb-4 neon-text">
-                            {tutorial.title}
-                        </h1>
-
-                        <p className="text-gray-400 text-lg">
-                            {tutorial.excerpt}
-                        </p>
-
-                        <div className="flex items-center space-x-2 mt-4 text-sm text-gray-500 font-mono transition-all duration-500">
-                            <span>Autor:</span>
-                            <span className="text-white">{tutorial.author}</span>
-                        </div>
-                    </header>
-
-                    <div className="flex flex-wrap gap-2 mb-8 transition-all duration-500">
-                        {tutorial.tags.map((tag, index) => (
-                            <span
-                                className="px-3 py-1 text-sm font-mono bg-kali-border text-gray-300 rounded"
-                            >
-                                #{tag}
-                            </span>
-                        ))}
-                    </div>
-
-                    <div
-                        className="glass-effect rounded-lg p-8 transition-all duration-500"
-                    >
-                        <div
-                            className="prose prose-invert max-w-none transition-all duration-500"
-                            dangerouslySetInnerHTML={{ __html: tutorial.content }}
-                        />
-                    </div>
-                </motion.article>
-            </div>
+        <div className="max-w-3xl mx-auto px-4 pt-28 pb-16">
+            <button onClick={() => setCurrentPage('tutorials')} className="mb-6 font-mono text-sm text-gray-400 hover:text-neon-green inline-flex items-center gap-1">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>Wróć
+            </button>
+            <article className="glass rounded-2xl p-6 sm:p-10">
+                <div className="flex items-center gap-2 mb-3 text-xs font-mono">
+                    <span className="chip-blue">{tutorial.category}</span>
+                    <span className="text-gray-500">{tutorial.readTime}</span>
+                    <span className="text-gray-500">•</span>
+                    <span className="text-gray-500">{tutorial.date}</span>
+                </div>
+                <h1 className="text-3xl font-bold text-white mb-3">{tutorial.title}</h1>
+                <p className="text-gray-400 mb-6">{tutorial.excerpt}</p>
+                <div className="prose prose-invert max-w-none text-gray-300" dangerouslySetInnerHTML={{ __html: tutorial.content || '' }} />
+            </article>
         </div>
     );
-};
+}
 
-// News Page
-const NewsPage = ({ setCurrentPage }) => {
+function NewsPage({ news }) {
     return (
-        <div
-            className="min-h-screen pt-24 pb-12 transition-all duration-500"
-        >
-            <div className="container mx-auto px-4 transition-all duration-500">
-                <div
-                    className="text-center mb-12 transition-all duration-500"
-                >
-                    <h1 className="font-mono text-4xl md:text-5xl font-bold mb-4 neon-text">
-                        Aktualności
-                    </h1>
-                    <p className="text-gray-400 max-w-2xl mx-auto">
-                        Najnowsze informacje o Goncik-tech, aktualizacjach i nowych funkcjach.
-                    </p>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 transition-all duration-500">
-                    {news.map((item, index) => (
-                        <div
-                            className={`glass-effect rounded-lg p-6 ${item.featured ? 'neon-border' : ''}`}
-                        >
-                            {item.featured && (
-                                <div className="absolute top-4 right-4 transition-all duration-500">
-                                    <span className="px-2 py-1 text-xs font-mono bg-neon-green text-black rounded">
-                                        Wyróżnione
-                                    </span>
-                                </div>
-                            )}
-
-                            <div className="flex items-center space-x-2 mb-4 transition-all duration-500">
-                                <span className="px-3 py-1 text-xs font-mono bg-neon-blue text-black rounded-full">
-                                    {item.category}
-                                </span>
-                                <span className="text-xs text-gray-500 font-mono">
-                                    {item.date}
-                                </span>
+        <div className="max-w-5xl mx-auto px-4 pt-28 pb-16">
+            <header className="mb-8">
+                <h1 className="text-3xl sm:text-4xl font-bold gradient-text">Aktualności</h1>
+                <p className="text-gray-400 mt-2">Najnowsze wydania, kamienie milowe i aktualizacje.</p>
+            </header>
+            {news.length === 0 ? (
+                <div className="glass rounded-xl p-12 text-center text-gray-400 font-mono">Brak aktualności.</div>
+            ) : (
+                <div className="space-y-4">
+                    {news.map((n) => (
+                        <div key={n.id} className="glass rounded-xl p-5 card-hover">
+                            <div className="flex flex-wrap items-center gap-2 mb-2 text-xs font-mono">
+                                <span className={`chip ${n.category === 'milestone' ? 'chip-yellow' : n.category === 'feature' ? 'chip-purple' : 'chip-blue'}`}>{n.category}</span>
+                                {n.featured && <span className="chip">★ wyróżnione</span>}
+                                <span className="text-gray-500">{n.date}</span>
                             </div>
-
-                            <h3 className="font-mono font-bold text-lg text-white mb-2">
-                                {item.title}
-                            </h3>
-
-                            <p className="text-gray-400 text-sm mb-4">
-                                {item.excerpt}
-                            </p>
-
-                            <div className="text-sm text-gray-500 font-mono transition-all duration-500">
-                                Autor: {item.author}
-                            </div>
+                            <h2 className="font-mono font-bold text-xl text-white mb-1">{n.title}</h2>
+                            <p className="text-sm text-gray-400 mb-2">{n.excerpt}</p>
+                            <p className="text-sm text-gray-300">{n.content}</p>
+                            <div className="text-[11px] text-gray-500 font-mono mt-3">— {n.author}</div>
                         </div>
                     ))}
                 </div>
-            </div>
+            )}
         </div>
     );
-};
+}
 
-// Contact Page
-const ContactPage = ({ setCurrentPage, addMessage }) => {
-    const [formData, setFormData] = React.useState({
-        name: '',
-        email: '',
-        subject: '',
-        message: ''
-    });
-    const [isSubmitting, setIsSubmitting] = React.useState(false);
-    const [submitStatus, setSubmitStatus] = React.useState(null);
+function ContactPage({ addMessage }) {
+    const [form, setForm] = useState({ name: '', email: '', subject: '', message: '' });
+    const [sending, setSending] = useState(false);
+    const [sent, setSent] = useState(false);
+    const toast = useToast();
 
-    const handleSubmit = async (e) => {
+    const onSubmit = (e) => {
         e.preventDefault();
-        setIsSubmitting(true);
-
-        try {
-            // Próba wysłania wiadomości do localStorage (dla admina)
-            const newMessage = addMessage(formData);
-
-            // Symulacja wysyłania emaila (dla użytkownika)
-            await new Promise(resolve => setTimeout(resolve, 1500));
-
-            setSubmitStatus('success');
-            setFormData({ name: '', email: '', subject: '', message: '' });
-
-            setTimeout(() => {
-                setSubmitStatus(null);
-                setIsSubmitting(false);
-            }, 3000);
-        } catch (error) {
-            setSubmitStatus('error');
-            setIsSubmitting(false);
-            setTimeout(() => {
-                setSubmitStatus(null);
-            }, 3000);
-        }
+        setSending(true);
+        setTimeout(() => {
+            addMessage(form);
+            setSending(false);
+            setSent(true);
+            setForm({ name: '', email: '', subject: '', message: '' });
+            toast.push('Wiadomość wysłana ✓', 'success');
+            setTimeout(() => setSent(false), 3000);
+        }, 700);
     };
 
     return (
-        <div
-            className="min-h-screen pt-24 pb-12 transition-all duration-500"
-        >
-            <div className="container mx-auto px-4 transition-all duration-500">
-                <div
-                    className="text-center mb-12 transition-all duration-500"
-                >
-                    <h1 className="font-mono text-4xl md:text-5xl font-bold mb-4 neon-text">
-                        Kontakt
-                    </h1>
-                    <p className="text-gray-400 max-w-2xl mx-auto">
-                        Masz pytania lub potrzebujesz pomocy? Skontaktuj się z nami.
-                    </p>
+        <div className="max-w-3xl mx-auto px-4 pt-28 pb-16">
+            <header className="mb-8 text-center">
+                <h1 className="text-3xl sm:text-4xl font-bold gradient-text">Kontakt</h1>
+                <p className="text-gray-400 mt-2">Masz pytanie? Napisz do nas — odpowiemy najszybciej jak to możliwe.</p>
+            </header>
+            <form onSubmit={onSubmit} className="glass rounded-2xl p-6 sm:p-8 space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label className="block text-xs font-mono text-gray-400 mb-1.5">Imię</label>
+                        <input className="field" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Twoje imię" />
+                    </div>
+                    <div>
+                        <label className="block text-xs font-mono text-gray-400 mb-1.5">Email</label>
+                        <input type="email" className="field" required value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="twoj@email.com" />
+                    </div>
+                </div>
+                <div>
+                    <label className="block text-xs font-mono text-gray-400 mb-1.5">Temat</label>
+                    <input className="field" required value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} placeholder="Temat wiadomości" />
+                </div>
+                <div>
+                    <label className="block text-xs font-mono text-gray-400 mb-1.5">Wiadomość</label>
+                    <textarea rows={6} className="field resize-none" required value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} placeholder="Twoja wiadomość…" />
+                </div>
+                <button type="submit" className="btn-primary w-full inline-flex items-center justify-center gap-2" disabled={sending}>
+                    {sending ? <><span className="spinner"></span>Wysyłanie…</> : (sent ? 'Wysłano ✓' : 'Wyślij wiadomość')}
+                </button>
+            </form>
+            <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {[
+                    { name: 'Discord', v: 'discord.gg/goncik-tech', c: 'green' },
+                    { name: 'GitHub', v: 'github.com/goncik-tech', c: 'blue' },
+                    { name: 'Email', v: 'contact@goncik.tech', c: 'purple' },
+                ].map((c) => (
+                    <div key={c.name} className="glass rounded-xl p-4 text-center card-hover">
+                        <div className={`text-xs font-mono mb-1 ${c.c === 'green' ? 'text-neon-green' : c.c === 'blue' ? 'text-neon-blue' : 'text-neon-purple'}`}>{c.name}</div>
+                        <div className="text-sm text-gray-300 font-mono break-all">{c.v}</div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}
+
+function NotFoundPage({ setCurrentPage }) {
+    return (
+        <div className="min-h-screen flex items-center justify-center grid-bg">
+            <div className="text-center px-4">
+                <div className="font-mono text-8xl sm:text-9xl font-bold gradient-text animate-pulse-slow">404</div>
+                <h2 className="font-mono text-2xl sm:text-3xl text-white mt-4 mb-2">Nie znaleziono strony</h2>
+                <p className="text-gray-400 mb-8 max-w-md mx-auto">Wygląda na to, że ta strona nie istnieje lub została usunięta.</p>
+                <button onClick={() => setCurrentPage('home')} className="btn-primary">Wróć na stronę główną</button>
+            </div>
+        </div>
+    );
+}
+
+/* =========================================================
+   8. Admin panel (login + dashboard)
+   ========================================================= */
+function AdminLoginModal({ open, onClose, onLogin }) {
+    const [pwd, setPwd] = useState('');
+    const [err, setErr] = useState('');
+    const submit = (e) => {
+        e.preventDefault();
+        if (onLogin(pwd)) { onClose(); setPwd(''); setErr(''); }
+        else setErr('Nieprawidłowe hasło');
+    };
+    return (
+        <Modal open={open} onClose={onClose} maxWidth="max-w-md">
+            <form onSubmit={submit} className="p-6 sm:p-8">
+                <h3 className="font-mono text-xl font-bold text-neon-green mb-1">Panel admina</h3>
+                <p className="text-xs text-gray-400 mb-5">Zaloguj się, aby zarządzać skryptami, tutorialami i aktualnościami.</p>
+                <label className="block text-xs font-mono text-gray-400 mb-1.5">Hasło</label>
+                <input type="password" autoFocus className="field" value={pwd} onChange={(e) => setPwd(e.target.value)} placeholder="••••••••" />
+                {err && <div className="mt-2 text-xs font-mono text-red-400">{err}</div>}
+                <div className="mt-5 flex gap-2">
+                    <button type="button" onClick={onClose} className="btn-ghost flex-1">Anuluj</button>
+                    <button type="submit" className="btn-primary flex-1">Zaloguj</button>
+                </div>
+            </form>
+        </Modal>
+    );
+}
+
+function AdminDashboard({ open, onClose, data, setData, onPersist, messages, onMarkRead, onReply, onDeleteMessage, onResetData, serverStatus }) {
+    const [tab, setTab] = useState('overview');
+    const [editing, setEditing] = useState(null); // { type, mode: 'add'|'edit', item }
+    const [selectedMessage, setSelectedMessage] = useState(null);
+    const [replyText, setReplyText] = useState('');
+    const [saving, setSaving] = useState(false);
+
+    if (!open) return null;
+
+    const tabs = [
+        { id: 'overview', label: 'Overview' },
+        { id: 'scripts', label: 'Skrypty', count: data.scripts.length },
+        { id: 'tutorials', label: 'Tutoriale', count: data.tutorials.length },
+        { id: 'news', label: 'Aktualności', count: data.news.length },
+        { id: 'messages', label: 'Wiadomości', count: messages.length, highlight: messages.filter((m) => m.status === 'unread').length },
+    ];
+
+    const handleSaveItem = async (type, item) => {
+        setSaving(true);
+        const next = { ...data };
+        const arr = next[type];
+        if (item.id && arr.some((x) => x.id === item.id)) {
+            next[type] = arr.map((x) => x.id === item.id ? { ...x, ...item } : x);
+        } else {
+            const newId = (arr.reduce((m, x) => Math.max(m, x.id || 0), 0) || 0) + 1;
+            next[type] = [...arr, { ...item, id: newId }];
+        }
+        setData(next);
+        const r = await onPersist(next);
+        setSaving(false);
+        if (r && r.ok) setEditing(null);
+    };
+
+    const handleDelete = async (type, id) => {
+        if (!confirm('Na pewno usunąć?')) return;
+        setSaving(true);
+        const next = { ...data, [type]: data[type].filter((x) => x.id !== id) };
+        setData(next);
+        await onPersist(next);
+        setSaving(false);
+    };
+
+    return (
+        <div className="fixed inset-0 z-[70] bg-black/70 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4" onClick={onClose}>
+            <div className="glass-strong rounded-2xl w-full max-w-6xl max-h-[95vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
+                <div className="px-5 py-4 border-b border-kali-border flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-md bg-gradient-to-br from-neon-green to-neon-blue flex items-center justify-center text-black font-bold">G</div>
+                        <div>
+                            <div className="font-mono font-bold text-white">Panel admina</div>
+                            <div className="text-[11px] font-mono text-gray-500">goncik-tech • control center</div>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <StatusBadge status={serverStatus} />
+                        <button onClick={onClose} className="text-gray-400 hover:text-white p-1" aria-label="Zamknij">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                        </button>
+                    </div>
                 </div>
 
-                <div className="max-w-2xl mx-auto transition-all duration-500">
-                    <div
-                        className="glass-effect rounded-lg p-8 transition-all duration-500"
-                    >
-                         {submitStatus === 'success' && (
-                            <div
-                                className="mb-6 p-4 bg-neon-green/10 border border-neon-green rounded text-neon-green font-mono text-sm transition-all duration-500"
-                            >
-                                Wiadomość została wysłana! Odpowiemy wkrótce.
-                            </div>
-                        )}
-
-                        {submitStatus === 'error' && (
-                            <div
-                                className="mb-6 p-4 bg-red-500/10 border border-red-500 rounded text-red-500 font-mono text-sm transition-all duration-500"
-                            >
-                                Wystąpił błąd podczas wysyłania. Spróbuj ponownie.
-                            </div>
-                        )}
-
-                        <form onSubmit={handleSubmit} className="space-y-6">
-                            <div>
-                                <label className="block text-sm font-mono text-gray-400 mb-2">
-                                    Imię
-                                </label>
-                                <input
-                                    type="text"
-                                    required
-                                    value={formData.name}
-                                    onChange={(e) => setFormData({...formData, name: e.target.value})}
-                                    className="w-full bg-kali-black border border-kali-border rounded px-4 py-3 text-white font-mono focus:outline-none focus:border-neon-green transition-colors"
-                                    placeholder="Twoje imię"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-mono text-gray-400 mb-2">
-                                    Email
-                                </label>
-                                <input
-                                    type="email"
-                                    required
-                                    value={formData.email}
-                                    onChange={(e) => setFormData({...formData, email: e.target.value})}
-                                    className="w-full bg-kali-black border border-kali-border rounded px-4 py-3 text-white font-mono focus:outline-none focus:border-neon-green transition-colors"
-                                    placeholder="twoj@email.com"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-mono text-gray-400 mb-2">
-                                    Temat
-                                </label>
-                                <input
-                                    type="text"
-                                    required
-                                    value={formData.subject}
-                                    onChange={(e) => setFormData({...formData, subject: e.target.value})}
-                                    className="w-full bg-kali-black border border-kali-border rounded px-4 py-3 text-white font-mono focus:outline-none focus:border-neon-green transition-colors"
-                                    placeholder="Temat wiadomości"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-mono text-gray-400 mb-2">
-                                    Wiadomość
-                                </label>
-                                <textarea
-                                    required
-                                    rows="6"
-                                    value={formData.message}
-                                    onChange={(e) => setFormData({...formData, message: e.target.value})}
-                                    className="w-full bg-kali-black border border-kali-border rounded px-4 py-3 text-white font-mono focus:outline-none focus:border-neon-green transition-colors resize-none"
-                                    placeholder="Twoja wiadomość..."
-                                />
-                            </div>
-
-                            <button
-                                type="submit"
-                                disabled={isSubmitting}
-                                className="w-full font-mono px-8 py-4 bg-neon-green text-black font-bold rounded-lg hover:bg-neon-blue transition-colors neon-border disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                                {isSubmitting ? 'Wysyłanie...' : 'Wyślij wiadomość'}
+                <div className="flex-1 grid grid-cols-1 md:grid-cols-[200px_1fr] overflow-hidden">
+                    <aside className="border-r border-kali-border p-3 space-y-1 hidden md:block">
+                        {tabs.map((t) => (
+                            <button key={t.id} onClick={() => { setTab(t.id); setEditing(null); setSelectedMessage(null); }}
+                                className={`w-full text-left px-3 py-2 rounded-lg font-mono text-sm transition flex items-center justify-between ${
+                                    tab === t.id ? 'bg-neon-green/10 text-neon-green border border-neon-green/30' : 'text-gray-300 hover:bg-white/5 border border-transparent'
+                                }`}>
+                                <span>{t.label}</span>
+                                <span className="flex items-center gap-1">
+                                    {t.highlight > 0 && <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>}
+                                    <span className="text-[10px] text-gray-500">{t.count ?? ''}</span>
+                                </span>
                             </button>
-                        </form>
-                    </div>
-
-                    {/* Contact Info */}
-                    <div
-                        className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6 transition-all duration-500"
-                    >
-                        <div className="glass-effect rounded-lg p-6 text-center transition-all duration-500">
-                            <div className="flex justify-center mb-4 transition-all duration-500">
-                                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#00ff41" strokeWidth="2">
-                                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                                </svg>
-                            </div>
-                            <h3 className="font-mono font-bold text-white mb-2">Discord</h3>
-                            <a
-                                href="https://discord.gg/goncik-tech"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-gray-400 hover:text-neon-green text-sm"
-                            >
-                                discord.gg/goncik-tech
-                            </a>
+                        ))}
+                        <div className="pt-3 mt-3 border-t border-kali-border">
+                            <button onClick={async () => {
+                                if (!confirm('Przywrócić domyślne dane z backupu?')) return;
+                                const r = await onResetData();
+                                if (r && r.ok) alert('Przywrócono dane z backupu. Odśwież stronę.');
+                            }} className="w-full text-left px-3 py-2 rounded-lg font-mono text-xs text-red-400 hover:bg-red-500/10">
+                                ↺ Przywróć backup
+                            </button>
+                        </div>
+                    </aside>
+                    <div className="overflow-y-auto p-4 sm:p-6">
+                        {/* Mobile tabs */}
+                        <div className="md:hidden flex gap-1 overflow-x-auto pb-3 mb-2">
+                            {tabs.map((t) => (
+                                <button key={t.id} onClick={() => { setTab(t.id); setEditing(null); setSelectedMessage(null); }}
+                                    className={`whitespace-nowrap px-3 py-1.5 rounded-md font-mono text-xs ${
+                                        tab === t.id ? 'bg-neon-green/10 text-neon-green' : 'text-gray-300 glass'
+                                    }`}>
+                                    {t.label} {t.count != null && <span className="text-gray-500">({t.count})</span>}
+                                </button>
+                            ))}
                         </div>
 
-                        <div className="glass-effect rounded-lg p-6 text-center transition-all duration-500">
-                            <div className="flex justify-center mb-4 transition-all duration-500">
-                                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#00d4ff" strokeWidth="2">
-                                    <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405 1.02 0 2.04.135 3 .405 2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
-                                </svg>
-                            </div>
-                            <h3 className="font-mono font-bold text-white mb-2">GitHub</h3>
-                            <a
-                                href="https://github.com/goncik-tech"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-gray-400 hover:text-neon-green text-sm"
-                            >
-                                github.com/goncik-tech
-                            </a>
-                        </div>
-
-                        <div className="glass-effect rounded-lg p-6 text-center transition-all duration-500">
-                            <div className="flex justify-center mb-4 transition-all duration-500">
-                                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#bf00ff" strokeWidth="2">
-                                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                                </svg>
-                            </div>
-                            <h3 className="font-mono font-bold text-white mb-2">Email</h3>
-                            <a
-                                href="mailto:contact@goncik.tech"
-                                className="text-gray-400 hover:text-neon-green text-sm"
-                            >
-                                contact@goncik.tech
-                            </a>
-                        </div>
+                        {tab === 'overview' && <OverviewTab data={data} messages={messages} />}
+                        {tab === 'scripts' && <ItemsTab type="scripts" data={data} editing={editing} setEditing={setEditing} onSave={handleSaveItem} onDelete={handleDelete} saving={saving} />}
+                        {tab === 'tutorials' && <ItemsTab type="tutorials" data={data} editing={editing} setEditing={setEditing} onSave={handleSaveItem} onDelete={handleDelete} saving={saving} />}
+                        {tab === 'news' && <ItemsTab type="news" data={data} editing={editing} setEditing={setEditing} onSave={handleSaveItem} onDelete={handleDelete} saving={saving} />}
+                        {tab === 'messages' && <MessagesTab messages={messages} onMarkRead={onMarkRead} onDelete={onDeleteMessage} selected={selectedMessage} setSelected={setSelectedMessage} replyText={replyText} setReplyText={setReplyText} onReply={onReply} />}
                     </div>
                 </div>
             </div>
         </div>
     );
-};
+}
 
-// Not Found Page
-const NotFoundPage = ({ setCurrentPage }) => {
+function OverviewTab({ data, messages }) {
+    const totalDownloads = data.scripts.reduce((acc, s) => acc + (s.downloads || 0), 0);
+    const freeCount = data.scripts.filter((s) => s.isFree).length;
+    const unread = messages.filter((m) => m.status === 'unread').length;
+    const stats = [
+        { label: 'Skrypty', value: data.scripts.length, color: 'text-neon-green' },
+        { label: 'Darmowe', value: freeCount, color: 'text-neon-blue' },
+        { label: 'Tutoriale', value: data.tutorials.length, color: 'text-neon-purple' },
+        { label: 'Aktualności', value: data.news.length, color: 'text-neon-yellow' },
+        { label: 'Pobrań', value: totalDownloads.toLocaleString(), color: 'text-white' },
+        { label: 'Wiadomości (nieprzeczytane)', value: `${messages.length} (${unread})`, color: 'text-neon-pink' },
+    ];
     return (
-        <div
-            className="min-h-screen flex items-center justify-center transition-all duration-500"
-        >
-            <div className="text-center transition-all duration-500">
-                <div
-                    className="mb-8 transition-all duration-500"
-                >
-                    <h1 className="font-mono text-8xl md:text-9xl font-bold neon-text">
-                        404
-                    </h1>
-                </div>
-
-                <div
-                    className="mb-8 transition-all duration-500"
-                >
-                    <h2 className="font-mono text-2xl md:text-3xl font-bold text-white mb-4">
-                        Nie znaleziono strony
-                    </h2>
-                    <p className="text-gray-400 max-w-md mx-auto">
-                        Wygląda na to, że ta strona nie istnieje lub została usunięta.
-                    </p>
-                </div>
-
-                <div
-                >
-                    <button
-                        onClick={() => setCurrentPage('home')}
-                        className="font-mono px-8 py-4 bg-neon-green text-black font-bold rounded-lg hover:bg-neon-blue transition-colors neon-border"
-                    >
-                        Wróć na stronę główną
-                    </button>
-                </div>
+        <div className="space-y-6">
+            <h2 className="font-mono text-xl font-bold text-white">Statystyki</h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {stats.map((s) => (
+                    <div key={s.label} className="glass rounded-xl p-4">
+                        <div className={`font-mono text-2xl sm:text-3xl font-bold ${s.color}`}>{s.value}</div>
+                        <div className="text-xs text-gray-400 font-mono mt-1">{s.label}</div>
+                    </div>
+                ))}
+            </div>
+            <div className="glass rounded-xl p-5 text-sm text-gray-300 leading-relaxed">
+                <h3 className="font-mono font-bold text-neon-green mb-2">Jak działa zapis?</h3>
+                <p className="mb-2">Każda zmiana w panelu admina wysyła żądanie <code className="px-1.5 py-0.5 bg-kali-card rounded text-neon-blue text-xs">POST /api/save</code> do lokalnego serwera <code className="px-1.5 py-0.5 bg-kali-card rounded text-neon-blue text-xs">server_api.py</code>.</p>
+                <p>Serwer automatycznie zapisuje zmiany do pliku <code className="px-1.5 py-0.5 bg-kali-card rounded text-neon-blue text-xs">js/data.js</code>. Po odświeżeniu strony zmiany są widoczne natychmiast.</p>
             </div>
         </div>
     );
-};
+}
 
-// ============================================
-// MAIN APP COMPONENT
-// ============================================
-
-const App = () => {
-    const [currentPage, setCurrentPage] = React.useState('home');
-    const [selectedScript, setSelectedScript] = React.useState(null);
-    const [selectedTutorial, setSelectedTutorial] = React.useState(null);
-    const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
-
-    // Admin Auth
-    const { isAdmin, isAdminPanelOpen, setIsAdminPanelOpen, login, logout } = useAdminAuth();
-
-    // Messages hook
-    const { addMessage } = useMessages();
-
-    // Data state
-    const [localScripts, setLocalScripts] = React.useState(scripts);
-    const [localTutorials, setLocalTutorials] = React.useState(tutorials);
-    const [localNews, setLocalNews] = React.useState(news);
-
-    // Handle page routing
-    const renderPage = () => {
-        switch (currentPage) {
-            case 'home':
-                return <HomePage setCurrentPage={setCurrentPage} setSelectedScript={setSelectedScript} setSelectedTutorial={setSelectedTutorial} />;
-            case 'scripts':
-                return <ScriptsPage setCurrentPage={setCurrentPage} setSelectedScript={setSelectedScript} filteredScripts={localScripts} />;
-            case 'bypassy':
-                return <BypassyPage setCurrentPage={setCurrentPage} setSelectedScript={setSelectedScript} />;
-            case 'free':
-                return <FreeScriptsPage setCurrentPage={setCurrentPage} setSelectedScript={setSelectedScript} />;
-            case 'script-detail':
-                return <ScriptDetailPage script={selectedScript} setCurrentPage={setCurrentPage} />;
-            case 'tutorials':
-                return <TutorialsPage setCurrentPage={setCurrentPage} setSelectedTutorial={setSelectedTutorial} />;
-            case 'tutorial-detail':
-                return <TutorialDetailPage tutorial={selectedTutorial} setCurrentPage={setCurrentPage} />;
-            case 'news':
-                return <NewsPage setCurrentPage={setCurrentPage} />;
-            case 'contact':
-                return <ContactPage setCurrentPage={setCurrentPage} addMessage={addMessage} />;
-            default:
-                return <NotFoundPage setCurrentPage={setCurrentPage} />;
-        }
-    };
-
-    // Scroll to top on page change
-    React.useEffect(() => {
-        window.scrollTo(0, 0);
-    }, [currentPage]);
+function ItemsTab({ type, data, editing, setEditing, onSave, onDelete, saving }) {
+    const list = data[type];
+    const titles = { scripts: 'Skrypty', tutorials: 'Tutoriale', news: 'Aktualności' };
 
     return (
-        <div className="min-h-screen font-sans transition-all duration-500">
-            <Navbar
-                currentPage={currentPage}
-                setCurrentPage={setCurrentPage}
-                isMobileMenuOpen={isMobileMenuOpen}
-                setIsMobileMenuOpen={setIsMobileMenuOpen}
-            />
+        <div className="space-y-4">
+            <div className="flex items-center justify-between">
+                <h2 className="font-mono text-xl font-bold text-white">{titles[type]}</h2>
+                <button onClick={() => setEditing({ type, mode: 'add', item: defaultsFor(type) })}
+                    className="btn-primary text-sm">+ Dodaj</button>
+            </div>
 
-            <main
-             className="page-enter">
-                {renderPage()}
-            </main>
-
-            <Footer
-                isAdmin={isAdmin}
-                isAdminPanelOpen={isAdminPanelOpen}
-                setIsAdminPanelOpen={setIsAdminPanelOpen}
-                logout={logout}
-            />
-
-            {/* Admin Login */}
-            <AdminLogin
-                isOpen={isAdminPanelOpen && !isAdmin}
-                onClose={() => setIsAdminPanelOpen(false)}
-                onLogin={login}
-            />
-
-            {/* Admin Dashboard */}
-            {isAdmin && (
-                <AdminDashboard
-                    isOpen={isAdminPanelOpen && isAdmin}
-                    onClose={() => setIsAdminPanelOpen(false)}
-                    scripts={localScripts}
-                    setScripts={setLocalScripts}
-                    tutorials={localTutorials}
-                    setTutorials={setLocalTutorials}
-                    news={localNews}
-                    setNews={setLocalNews}
+            {editing && editing.type === type && (
+                <ItemForm
+                    type={type}
+                    item={editing.item}
+                    mode={editing.mode}
+                    onCancel={() => setEditing(null)}
+                    onSave={(it) => onSave(type, it)}
+                    saving={saving}
                 />
             )}
+
+            {list.length === 0 ? (
+                <div className="glass rounded-xl p-8 text-center text-gray-400 font-mono text-sm">Brak elementów. Dodaj pierwszy!</div>
+            ) : (
+                <div className="space-y-2">
+                    {list.map((item) => (
+                        <div key={item.id} className="glass rounded-xl p-4 flex items-start gap-3">
+                            <div className="flex-1 min-w-0">
+                                <div className="font-mono font-bold text-white truncate">{item.name || item.title}</div>
+                                <div className="text-xs text-gray-400 truncate">{item.description || item.excerpt}</div>
+                                <div className="flex flex-wrap gap-2 mt-1.5 text-[10px] font-mono text-gray-500">
+                                    {item.category && <span className="chip">#{item.category}</span>}
+                                    {item.isFree != null && <span className={item.isFree ? 'chip' : 'chip-blue'}>{item.isFree ? 'FREE' : 'PREMIUM'}</span>}
+                                    {item.version && <span>v{item.version}</span>}
+                                    {item.date && <span>{item.date}</span>}
+                                </div>
+                            </div>
+                            <div className="flex gap-1 flex-shrink-0">
+                                <button onClick={() => setEditing({ type, mode: 'edit', item })}
+                                    className="p-2 rounded-md text-neon-blue hover:bg-neon-blue/10" title="Edytuj">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                                </button>
+                                <button onClick={() => onDelete(type, item.id)} className="p-2 rounded-md text-red-400 hover:bg-red-500/10" title="Usuń">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                                </button>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
         </div>
     );
-};
+}
 
-// ============================================
-// RENDER APP
-// ============================================
+function defaultsFor(type) {
+    if (type === 'scripts') return {
+        name: '', description: '', category: 'script', tags: [],
+        features: [], downloadUrl: '', isFree: true, downloads: 0,
+        rating: 5.0, lastUpdated: new Date().toISOString().slice(0, 10),
+        version: '1.0.0', author: 'Goncik', requirements: [],
+    };
+    if (type === 'tutorials') return {
+        title: '', excerpt: '', content: '', category: 'script',
+        tags: [], author: 'Goncik', date: new Date().toISOString().slice(0, 10),
+        readTime: '5 min', featured: false,
+    };
+    return {
+        title: '', excerpt: '', content: '', category: 'update',
+        author: 'Goncik', date: new Date().toISOString().slice(0, 10), featured: false,
+    };
+}
 
+function ItemForm({ type, item, mode, onSave, onCancel, saving }) {
+    const [state, setState] = useState(() => ({ ...defaultsFor(type), ...item }));
+    const set = (k, v) => setState((s) => ({ ...s, [k]: v }));
+
+    const submit = (e) => { e.preventDefault(); onSave(state); };
+
+    return (
+        <form onSubmit={submit} className="glass rounded-xl p-5 space-y-3">
+            <div className="flex items-center justify-between">
+                <h3 className="font-mono font-bold text-neon-green">{mode === 'add' ? 'Dodaj nowy' : 'Edytuj'}</h3>
+                <span className="text-[10px] font-mono text-gray-500 uppercase">{type}</span>
+            </div>
+            {type === 'scripts' && (
+                <>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div><label className="text-xs text-gray-400 font-mono">Nazwa</label><input className="field" required value={state.name} onChange={(e) => set('name', e.target.value)} /></div>
+                        <div><label className="text-xs text-gray-400 font-mono">Wersja</label><input className="field" value={state.version} onChange={(e) => set('version', e.target.value)} /></div>
+                    </div>
+                    <div><label className="text-xs text-gray-400 font-mono">Opis</label><textarea className="field" rows={2} required value={state.description} onChange={(e) => set('description', e.target.value)} /></div>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        <div><label className="text-xs text-gray-400 font-mono">Kategoria</label>
+                            <select className="field" value={state.category} onChange={(e) => set('category', e.target.value)}>
+                                {['bypass','script','bot','tool','generator'].map((c) => <option key={c} value={c}>{c}</option>)}
+                            </select>
+                        </div>
+                        <div><label className="text-xs text-gray-400 font-mono">Typ</label>
+                            <select className="field" value={state.isFree ? 'free' : 'premium'} onChange={(e) => set('isFree', e.target.value === 'free')}>
+                                <option value="free">Darmowy</option><option value="premium">Premium</option>
+                            </select>
+                        </div>
+                        <div><label className="text-xs text-gray-400 font-mono">Pobrań</label><input type="number" className="field" value={state.downloads} onChange={(e) => set('downloads', +e.target.value)} /></div>
+                        <div><label className="text-xs text-gray-400 font-mono">Ocena</label><input type="number" step="0.1" min="0" max="5" className="field" value={state.rating} onChange={(e) => set('rating', +e.target.value)} /></div>
+                    </div>
+                    <div><label className="text-xs text-gray-400 font-mono">URL do pobrania</label><input className="field" required value={state.downloadUrl} onChange={(e) => set('downloadUrl', e.target.value)} /></div>
+                    <div><label className="text-xs text-gray-400 font-mono">Tagi (przecinek)</label><input className="field" value={(state.tags || []).join(', ')} onChange={(e) => set('tags', e.target.value.split(',').map((t) => t.trim()).filter(Boolean))} /></div>
+                    <div><label className="text-xs text-gray-400 font-mono">Funkcje (jedna na linię)</label><textarea className="field" rows={3} value={(state.features || []).join('\n')} onChange={(e) => set('features', e.target.value.split('\n').map((s) => s.trim()).filter(Boolean))} /></div>
+                    <div><label className="text-xs text-gray-400 font-mono">Wymagania (jedno na linię)</label><textarea className="field" rows={2} value={(state.requirements || []).join('\n')} onChange={(e) => set('requirements', e.target.value.split('\n').map((s) => s.trim()).filter(Boolean))} /></div>
+                </>
+            )}
+            {type === 'tutorials' && (
+                <>
+                    <div><label className="text-xs text-gray-400 font-mono">Tytuł</label><input className="field" required value={state.title} onChange={(e) => set('title', e.target.value)} /></div>
+                    <div><label className="text-xs text-gray-400 font-mono">Krótki opis (excerpt)</label><textarea className="field" rows={2} required value={state.excerpt} onChange={(e) => set('excerpt', e.target.value)} /></div>
+                    <div><label className="text-xs text-gray-400 font-mono">Treść (HTML)</label><textarea className="field font-mono" rows={6} value={state.content} onChange={(e) => set('content', e.target.value)} placeholder="<h3>...</h3><p>...</p>" /></div>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        <div><label className="text-xs text-gray-400 font-mono">Kategoria</label>
+                            <select className="field" value={state.category} onChange={(e) => set('category', e.target.value)}>
+                                {['bypass','script','bot','tool'].map((c) => <option key={c} value={c}>{c}</option>)}
+                            </select>
+                        </div>
+                        <div><label className="text-xs text-gray-400 font-mono">Czas czytania</label><input className="field" value={state.readTime} onChange={(e) => set('readTime', e.target.value)} /></div>
+                        <div><label className="text-xs text-gray-400 font-mono">Data</label><input type="date" className="field" value={state.date} onChange={(e) => set('date', e.target.value)} /></div>
+                        <div className="flex items-end"><label className="flex items-center gap-2 text-xs font-mono text-gray-300"><input type="checkbox" className="check" checked={!!state.featured} onChange={(e) => set('featured', e.target.checked)} />Wyróżniony</label></div>
+                    </div>
+                    <div><label className="text-xs text-gray-400 font-mono">Tagi (przecinek)</label><input className="field" value={(state.tags || []).join(', ')} onChange={(e) => set('tags', e.target.value.split(',').map((t) => t.trim()).filter(Boolean))} /></div>
+                </>
+            )}
+            {type === 'news' && (
+                <>
+                    <div><label className="text-xs text-gray-400 font-mono">Tytuł</label><input className="field" required value={state.title} onChange={(e) => set('title', e.target.value)} /></div>
+                    <div><label className="text-xs text-gray-400 font-mono">Krótki opis (excerpt)</label><textarea className="field" rows={2} required value={state.excerpt} onChange={(e) => set('excerpt', e.target.value)} /></div>
+                    <div><label className="text-xs text-gray-400 font-mono">Pełna treść</label><textarea className="field" rows={4} value={state.content} onChange={(e) => set('content', e.target.value)} /></div>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                        <div><label className="text-xs text-gray-400 font-mono">Kategoria</label>
+                            <select className="field" value={state.category} onChange={(e) => set('category', e.target.value)}>
+                                {['update','milestone','feature'].map((c) => <option key={c} value={c}>{c}</option>)}
+                            </select>
+                        </div>
+                        <div><label className="text-xs text-gray-400 font-mono">Data</label><input type="date" className="field" value={state.date} onChange={(e) => set('date', e.target.value)} /></div>
+                        <div className="flex items-end"><label className="flex items-center gap-2 text-xs font-mono text-gray-300"><input type="checkbox" className="check" checked={!!state.featured} onChange={(e) => set('featured', e.target.checked)} />Wyróżniony</label></div>
+                    </div>
+                </>
+            )}
+            <div className="flex gap-2 pt-2">
+                <button type="button" onClick={onCancel} className="btn-ghost flex-1">Anuluj</button>
+                <button type="submit" className="btn-primary flex-1 inline-flex items-center justify-center gap-2" disabled={saving}>
+                    {saving ? <><span className="spinner"></span>Zapisuję…</> : 'Zapisz'}
+                </button>
+            </div>
+        </form>
+    );
+}
+
+function MessagesTab({ messages, onMarkRead, onDelete, selected, setSelected, replyText, setReplyText, onReply }) {
+    if (selected) {
+        const send = () => {
+            if (!replyText.trim()) return;
+            onReply(selected.id, replyText);
+            setReplyText('');
+        };
+        return (
+            <div className="space-y-3">
+                <button onClick={() => setSelected(null)} className="text-sm text-gray-400 hover:text-neon-green font-mono">← Wróć do listy</button>
+                <div className="glass rounded-xl p-5">
+                    <div className="text-xs font-mono text-gray-500 mb-1">Od: <span className="text-white">{selected.name}</span> ({selected.email})</div>
+                    <div className="text-xs font-mono text-gray-500 mb-1">Temat: <span className="text-white">{selected.subject}</span></div>
+                    <div className="text-xs font-mono text-gray-500 mb-3">Data: {new Date(selected.timestamp).toLocaleString('pl-PL')}</div>
+                    <div className="bg-kali-card rounded-lg p-4 text-sm text-gray-200 whitespace-pre-wrap">{selected.message}</div>
+                </div>
+                <div className="glass rounded-xl p-5">
+                    <h3 className="font-mono font-bold text-neon-green mb-2 text-sm">Odpowiedź</h3>
+                    <textarea className="field" rows={3} value={replyText} onChange={(e) => setReplyText(e.target.value)} placeholder="Napisz odpowiedź…" />
+                    <button onClick={send} className="btn-primary mt-3">Wyślij</button>
+                </div>
+                {(selected.replies || []).length > 0 && (
+                    <div className="space-y-2">
+                        <h3 className="font-mono font-bold text-white text-sm">Historia odpowiedzi</h3>
+                        {(selected.replies || []).map((r) => (
+                            <div key={r.id} className="glass rounded-lg p-3 border-l-2 border-neon-blue">
+                                <div className="text-[11px] font-mono text-neon-blue mb-1">Admin • {new Date(r.timestamp).toLocaleString('pl-PL')}</div>
+                                <div className="text-sm text-gray-200">{r.text}</div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+        );
+    }
+    if (messages.length === 0) return <div className="glass rounded-xl p-12 text-center text-gray-400 font-mono">Brak wiadomości.</div>;
+    return (
+        <div className="space-y-2">
+            {messages.map((m) => (
+                <div key={m.id} onClick={() => onMarkRead(m.id) || setSelected(m)}
+                    className={`glass rounded-xl p-4 cursor-pointer card-hover ${m.status === 'unread' ? 'border-l-4 border-l-neon-green' : ''}`}>
+                    <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                            <div className="flex flex-wrap items-center gap-2 mb-1">
+                                <span className="font-mono font-bold text-white text-sm">{m.name}</span>
+                                <span className="text-[10px] text-gray-500 font-mono">{new Date(m.timestamp).toLocaleString('pl-PL')}</span>
+                                {m.status === 'unread' && <span className="chip text-[10px]">Nowa</span>}
+                                {m.status === 'replied' && <span className="chip-blue text-[10px]">Odpowiedziana</span>}
+                            </div>
+                            <div className="text-xs text-gray-500 font-mono">{m.email}</div>
+                            <div className="text-sm text-gray-200 font-mono mt-1">{m.subject}</div>
+                            <div className="text-xs text-gray-400 line-clamp-2 mt-1">{m.message}</div>
+                        </div>
+                        <button onClick={(e) => { e.stopPropagation(); if (confirm('Usunąć wiadomość?')) onDelete(m.id); }} className="text-red-400 hover:text-red-300 p-1">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                        </button>
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
+}
+
+/* =========================================================
+   9. Główny App
+   ========================================================= */
+function App() {
+    const [page, setPage] = useState('home');
+    const [data, setData] = useState(initialData);
+    const [selectedScript, setSelectedScript] = useState(null);
+    const [selectedTutorial, setSelectedTutorial] = useState(null);
+    const [adminOpen, setAdminOpen] = useState(false);
+    const [loginOpen, setLoginOpen] = useState(false);
+    const [hydrated, setHydrated] = useState(false);
+    const toast = useToast();
+    const serverStatus = useServerStatus();
+    const { isAdmin, login, logout } = useAdminAuth();
+    const { messages, addMessage, markRead: onMarkRead, reply: onReply, remove: onDeleteMessage } = useMessages();
+
+    // Hydration: po załadowaniu pobierz świeże dane z serwera (zastępują window.data)
+    useEffect(() => {
+        fetch('/js/data.js', { cache: 'no-store' })
+            .then((r) => r.text())
+            .then((text) => {
+                try {
+                    // Wyciągamy const scripts = [ ... ]; itd. za pomocą eval w bezpiecznym kontekście
+                    const sandbox = { window: {} };
+                    const fn = new Function('window', text + '\nreturn window.data || { scripts, tutorials, news };');
+                    const fresh = fn(sandbox.window);
+                    if (fresh && Array.isArray(fresh.scripts)) {
+                        setData({
+                            scripts: fresh.scripts,
+                            tutorials: fresh.tutorials || [],
+                            news: fresh.news || [],
+                        });
+                    }
+                } catch (e) {
+                    console.warn('Hydration failed, using inline data', e);
+                } finally {
+                    setHydrated(true);
+                }
+            })
+            .catch(() => setHydrated(true));
+    }, []);
+
+    // Nawigacja z footera (event)
+    useEffect(() => {
+        const h = (e) => setPage(e.detail);
+        window.addEventListener('nav', h);
+        return () => window.removeEventListener('nav', h);
+    }, []);
+
+    // Scroll to top on page change
+    useEffect(() => { window.scrollTo({ top: 0, behavior: 'smooth' }); }, [page]);
+
+    const onAdminClick = () => {
+        if (isAdmin) setAdminOpen(true);
+        else setLoginOpen(true);
+    };
+
+    const handlePersist = async (next) => {
+        if (serverStatus !== 'online') {
+            toast.push('Serwer API offline — zmiany zapisane tylko lokalnie', 'error');
+            return { ok: false, local: true };
+        }
+        try {
+            const r = await API.save(next);
+            if (r.ok) toast.push('Zapisano do bazy ✓', 'success');
+            else toast.push('Błąd zapisu: ' + (r.error || 'unknown'), 'error');
+            return r;
+        } catch (e) {
+            toast.push('Brak połączenia z API', 'error');
+            return { ok: false, error: String(e) };
+        }
+    };
+
+    const renderPage = () => {
+        switch (page) {
+            case 'home':
+                return (
+                    <>
+                        <Hero setCurrentPage={setPage} />
+                        <FeaturedSection data={data} setCurrentPage={setPage} setSelected={setSelectedScript} setSelectedTutorial={setSelectedTutorial} />
+                        <WhySection />
+                    </>
+                );
+            case 'scripts': return <ScriptsPage scripts={data.scripts} setCurrentPage={setPage} setSelected={setSelectedScript} />;
+            case 'bypassy': return <ScriptsPage scripts={data.scripts} setCurrentPage={setPage} setSelected={setSelectedScript} filter="bypass" />;
+            case 'free': return <ScriptsPage scripts={data.scripts} setCurrentPage={setPage} setSelected={setSelectedScript} filter="free" />;
+            case 'script-detail': return <ScriptDetailPage script={selectedScript} setCurrentPage={setPage} />;
+            case 'tutorials': return <TutorialsPage tutorials={data.tutorials} setCurrentPage={setPage} setSelectedTutorial={setSelectedTutorial} />;
+            case 'tutorial-detail': return <TutorialDetailPage tutorial={selectedTutorial} setCurrentPage={setPage} />;
+            case 'news': return <NewsPage news={data.news} />;
+            case 'contact': return <ContactPage addMessage={addMessage} />;
+            default: return <NotFoundPage setCurrentPage={setPage} />;
+        }
+    };
+
+    return (
+        <ToastProvider>
+            <MatrixRain />
+            <div className="relative min-h-screen flex flex-col">
+                <Navbar currentPage={page} setCurrentPage={setPage} status={serverStatus} onAdminClick={onAdminClick} isAdmin={isAdmin} />
+                <main className="page-enter flex-1">{renderPage()}</main>
+                <Footer isAdmin={isAdmin} onAdminClick={onAdminClick} onLogout={logout} status={serverStatus} />
+
+                <AdminLoginModal open={loginOpen} onClose={() => setLoginOpen(false)} onLogin={(pwd) => {
+                    const ok = login(pwd);
+                    if (ok) { setLoginOpen(false); setAdminOpen(true); toast.push('Zalogowano ✓', 'success'); }
+                    return ok;
+                }} />
+
+                {isAdmin && (
+                    <AdminDashboard
+                        open={adminOpen}
+                        onClose={() => setAdminOpen(false)}
+                        data={data}
+                        setData={setData}
+                        onPersist={handlePersist}
+                        messages={messages}
+                        onMarkRead={onMarkRead}
+                        onReply={onReply}
+                        onDeleteMessage={onDeleteMessage}
+                        onResetData={API.reset}
+                        serverStatus={serverStatus}
+                    />
+                )}
+            </div>
+        </ToastProvider>
+    );
+}
+
+function FeaturedSection({ data, setCurrentPage, setSelected, setSelectedTutorial }) {
+    const featured = data.scripts.filter((s) => s.featured).slice(0, 3);
+    const [ref, visible] = useScrollReveal();
+    return (
+        <section ref={ref} className="max-w-7xl mx-auto px-4 py-16">
+            <div className="flex items-end justify-between mb-8" style={{ opacity: visible ? 1 : 0, transform: visible ? 'translateY(0)' : 'translateY(20px)', transition: 'all 0.6s ease-out' }}>
+                <div>
+                    <h2 className="text-2xl sm:text-3xl font-bold text-white">Polecane skrypty</h2>
+                    <p className="text-gray-400 text-sm mt-1">Najpopularniejsze narzędzia w naszej kolekcji.</p>
+                </div>
+                <button onClick={() => setCurrentPage('scripts')} className="text-sm text-neon-green hover:text-neon-blue font-mono">Wszystkie →</button>
+            </div>
+            {featured.length === 0 ? (
+                <div className="glass rounded-xl p-8 text-center text-gray-400 font-mono text-sm">Brak wyróżnionych skryptów.</div>
+            ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {featured.map((s) => <ScriptCard key={s.id} script={s} onClick={() => { setSelected(s); setCurrentPage('script-detail'); }} />)}
+                </div>
+            )}
+        </section>
+    );
+}
+
+function WhySection() {
+    const [ref, visible] = useScrollReveal();
+    const items = [
+        { t: 'Wysoka jakość', d: 'Każdy skrypt jest dokładnie testowany i udokumentowany.', c: 'green' },
+        { t: 'Szybkość', d: 'Optymalizacja wydajności i minimalne opóźnienia.', c: 'blue' },
+        { t: 'Bezpieczeństwo', d: 'Narzędzia są bezpieczne w użyciu i nie zawierają malware.', c: 'purple' },
+        { t: 'Wsparcie', d: 'Szybka pomoc i odpowiedzi na pytania użytkowników.', c: 'pink' },
+        { t: 'Aktualizacje', d: 'Regularne aktualizacje i nowe funkcje.', c: 'green' },
+        { t: 'Społeczność', d: 'Aktywna społeczność użytkowników i współpraca.', c: 'blue' },
+    ];
+    return (
+        <section ref={ref} className="max-w-7xl mx-auto px-4 py-16">
+            <div className="text-center mb-10" style={{ opacity: visible ? 1 : 0, transform: visible ? 'translateY(0)' : 'translateY(20px)', transition: 'all 0.6s ease-out' }}>
+                <h2 className="text-2xl sm:text-3xl font-bold text-white">Dlaczego goncik-tech?</h2>
+                <p className="text-gray-400 mt-1 text-sm">Odkryj zalety korzystania z naszych narzędzi.</p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {items.map((it, i) => {
+                    const [r, v] = useScrollReveal();
+                    const colorClass = it.c === 'green' ? 'text-neon-green' : it.c === 'blue' ? 'text-neon-blue' : it.c === 'purple' ? 'text-neon-purple' : 'text-neon-pink';
+                    return (
+                        <div key={i} ref={r} className="glass rounded-xl p-5 card-hover" style={{ opacity: v ? 1 : 0, transform: v ? 'translateY(0)' : 'translateY(16px)', transition: 'all 0.5s ease-out' }}>
+                            <div className={`w-10 h-10 rounded-lg glass flex items-center justify-center mb-3 ${colorClass}`}>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+                            </div>
+                            <h3 className={`font-mono font-bold mb-1 ${colorClass}`}>{it.t}</h3>
+                            <p className="text-sm text-gray-400">{it.d}</p>
+                        </div>
+                    );
+                })}
+            </div>
+        </section>
+    );
+}
+
+// Render
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(<App />);

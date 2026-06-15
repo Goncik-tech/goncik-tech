@@ -2,9 +2,7 @@
 // DATABASE - Scripts, Tutorials, News
 // ============================================
 
-// Store data globally so app.js can access it
-window.data = {
-    scripts: [
+const scripts = [
     {
         id: 1,
         name: "AI Chat Bypass Pro",
@@ -12,7 +10,7 @@ window.data = {
         category: "bypass",
         tags: ["AI", "Bypass", "OpenAI", "Claude", "Gemini"],
         features: [
-            "100%成功率 w ostatnich testach",
+            "Wysoka skuteczność w ostatnich testach",
             "Automatyczne proxy rotation",
             "Obsługa wielu modeli jednocześnie",
             "API key management",
@@ -96,7 +94,7 @@ window.data = {
     {
         id: 5,
         name: "Email Bomber Pro",
-        description: "Zaawansowany narzędzie do masowych emaili. W pełni konfigurowalny z różnymi szablonami.",
+        description: "Zaawansowane narzędzie do masowych emaili. W pełni konfigurowalny z różnymi szablonami.",
         category: "tool",
         tags: ["Email", "Spam", "Automation", "Templates"],
         features: [
@@ -139,7 +137,7 @@ window.data = {
     }
 ];
 
-export const tutorials = [
+const tutorials = [
     {
         id: 1,
         title: "Jak używać AI Chat Bypass Pro?",
@@ -181,17 +179,28 @@ pip install -r requirements.txt</code></pre>
         date: "2024-06-10",
         readTime: "10 min",
         featured: true
+    },
+    {
+        id: 2,
+        title: "Discord Token Generator — konfiguracja krok po kroku",
+        excerpt: "Dowiedz się jak poprawnie skonfigurować Discord Token Generator i uruchomić go w trybie multi-threaded.",
+        content: `
+            <h3>Wymagania</h3>
+            <p>Node.js 16+ oraz dostęp do proxy (HTTP/SOCKS5).</p>
+            <h3>Konfiguracja</h3>
+            <pre><code>npm install
+node generator.js --threads 8</code></pre>
+        `,
+        category: "script",
+        tags: ["Discord", "Tutorial"],
+        author: "Goncik",
+        date: "2024-06-08",
+        readTime: "6 min",
+        featured: true
     }
 ];
 
-// Store data globally so app.js can access it
-window.data = {
-    scripts: scripts,
-    tutorials: tutorials,
-    news: news
-};
-
-export const news = [
+const news = [
     {
         id: 1,
         title: "AI Chat Bypass Pro 3.2.1 - Nowa wersja!",
@@ -231,5 +240,8 @@ export const news = [
         author: "Goncik",
         date: "2024-06-12",
         featured: true
-    ]
-};
+    }
+];
+
+// Expose globally so app.js can read it without imports
+window.data = { scripts: scripts, tutorials: tutorials, news: news };

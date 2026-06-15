@@ -1,71 +1,50 @@
-# Goncik-tech Server Launcher
-# Uruchom ten skrypt aby wystartować serwer lokalny
+# Goncik-tech Server Launcher (inteligentny z zapisem danych)
 
 $projectPath = "C:\Users\Ignacy\Documents\OPEN_CODE_CTO_AI"
 $port = 8000
 $serverUrl = "http://localhost:$port"
 
 Write-Host "========================================" -ForegroundColor Cyan
-Write-Host "  Goncik-tech - Serwer Lokalny" -ForegroundColor Green
+Write-Host "  Goncik-tech - Serwer z zapisem danych" -ForegroundColor Green
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
-Write-Host "📁 Lokalizacja: $projectPath" -ForegroundColor Yellow
-Write-Host "🌐 Adres serwera: $serverUrl" -ForegroundColor Yellow
+Write-Host "Lokalizacja: $projectPath" -ForegroundColor Yellow
+Write-Host "Adres:       $serverUrl" -ForegroundColor Yellow
 Write-Host ""
-Write-Host "📝 Opcje:" -ForegroundColor White
+Write-Host "Opcje:" -ForegroundColor White
 Write-Host "   [S] Start serwera" -ForegroundColor Green
-Write-Host "   [O] Otwórz w przeglądarce" -ForegroundColor Blue
-Write-Host "   [X] Wyjście" -ForegroundColor Red
+Write-Host "   [O] Otworz w przegladarce" -ForegroundColor Blue
+Write-Host "   [X] Wyjscie" -ForegroundColor Red
 Write-Host ""
 
-$choice = Read-Host "Wybierz opcję"
+$choice = Read-Host "Wybierz opcje"
 
 switch ($choice) {
     "S" {
         Write-Host ""
-        Write-Host "🚀 Uruchamianie serwera Python na porcie $port..." -ForegroundColor Green
-        Write-Host "   Naciśnij Ctrl+C aby zatrzymać serwer" -ForegroundColor Yellow
+        Write-Host "Uruchamianie server_api.py na porcie $port..." -ForegroundColor Green
+        Write-Host "Nacisnij Ctrl+C aby zatrzymac" -ForegroundColor Yellow
         Write-Host ""
 
-        # Sprawdź czy Python jest dostępny
         try {
             $pythonVersion = python --version 2>&1
-            Write-Host "✅ Python dostępny: $pythonVersion" -ForegroundColor Green
+            Write-Host "Python: $pythonVersion" -ForegroundColor Green
         } catch {
-            Write-Host "❌ Błąd: Python nie jest dostępny" -ForegroundColor Red
-            Write-Host "   Zainstaluj Python 3 lub użyj start_server.bat" -ForegroundColor Yellow
+            Write-Host "BLAD: Python nie jest dostepny" -ForegroundColor Red
             exit 1
         }
 
-        # Uruchom serwer
         try {
-            Start-Process -FilePath "python" -ArgumentList "-m http.server $port" -WorkingDirectory $projectPath -NoNewWindow -Wait
+            Set-Location $projectPath
+            python server_api.py
         } catch {
-            Write-Host "❌ Błąd podczas uruchamiania serwera: $_" -ForegroundColor Red
+            Write-Host "BLAD: $_" -ForegroundColor Red
         }
     }
-
     "O" {
-        Write-Host ""
-        Write-Host "🌐 Otwieranie $serverUrl w przeglądarce..." -ForegroundColor Blue
         Start-Process $serverUrl
-        Write-Host "✅ Przeglądarka otwarta" -ForegroundColor Green
+        Write-Host "Przegladarka otwarta" -ForegroundColor Green
     }
-
-    "X" {
-        Write-Host ""
-        Write-Host "👋 Zamykanie..." -ForegroundColor Yellow
-        exit 0
-    }
-
-    default {
-        Write-Host ""
-        Write-Host "❌ Nieznana opcja: $choice" -ForegroundColor Red
-        Write-Host "   Spróbuj ponownie" -ForegroundColor Yellow
-    }
+    "X" { exit 0 }
+    default { Write-Host "Nieznana opcja" -ForegroundColor Red }
 }
-
-Write-Host ""
-Write-Host "========================================" -ForegroundColor Cyan
-Write-Host "Dziękujemy za użycie Goncik-tech!" -ForegroundColor Green
-Write-Host "========================================" -ForegroundColor Cyan

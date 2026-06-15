@@ -6,30 +6,28 @@
     <title>Goncik-tech | Skrypty, Bypassy i Narzędzia AI</title>
     <meta name="description" content="Darmowe i płatne skrypty, bypassy do AI i inne narzędzia">
 
-    <!-- React & ReactDOM via CDN -->
+    <!-- React 18 (UMD) -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-
-    <!-- Babel for JSX transformation -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-    <!-- Tailwind CSS via CDN -->
+    <!-- Tailwind CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
 
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-    <!-- Tailwind Config -->
+    <!-- Tailwind config -->
     <script>
         tailwind.config = {
             darkMode: 'class',
             theme: {
                 extend: {
                     fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                        mono: ['JetBrains Mono', 'monospace'],
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'ui-monospace', 'monospace'],
                     },
                     colors: {
                         neon: {
@@ -37,37 +35,37 @@
                             blue: '#00d4ff',
                             purple: '#bf00ff',
                             pink: '#ff00ff',
+                            yellow: '#f5d300',
                         },
                         kali: {
-                            black: '#0a0a0a',
-                            dark: '#111111',
-                            card: '#1a1a1a',
-                            border: '#2a2a2a',
+                            black: '#070708',
+                            dark: '#0d0d10',
+                            card: '#13131a',
+                            border: '#22222d',
                         },
+                    },
+                    boxShadow: {
+                        'neon-green': '0 0 12px rgba(0, 255, 65, 0.5), 0 0 28px rgba(0, 255, 65, 0.25)',
+                        'neon-blue': '0 0 12px rgba(0, 212, 255, 0.5), 0 0 28px rgba(0, 212, 255, 0.25)',
                     },
                     animation: {
-                        'glow': 'glow 2s ease-in-out infinite alternate',
-                        'matrix': 'matrix 20s linear infinite',
-                        'typing': 'typing 3s steps(30) infinite',
-                        'glitch': 'glitch 1s linear infinite',
+                        'gradient-x': 'gradient-x 8s ease infinite',
+                        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'float': 'float 6s ease-in-out infinite',
+                        'shimmer': 'shimmer 2.2s linear infinite',
                     },
                     keyframes: {
-                        glow: {
-                            '0%': { boxShadow: '0 0 5px #00ff41, 0 0 10px #00ff41' },
-                            '100%': { boxShadow: '0 0 20px #00ff41, 0 0 40px #00ff41' },
+                        'gradient-x': {
+                            '0%, 100%': { 'background-position': '0% 50%' },
+                            '50%': { 'background-position': '100% 50%' },
                         },
-                        matrix: {
-                            '0%': { transform: 'translateY(-100%)' },
-                            '100%': { transform: 'translateY(100%)' },
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-8px)' },
                         },
-                        typing: {
-                            '0%, 100%': { width: '0' },
-                            '50%': { width: '100%' },
-                        },
-                        glitch: {
-                            '2%, 64%': { transform: 'translate(2px,0) skew(0deg)' },
-                            '4%, 60%': { transform: 'translate(-2px,0) skew(0deg)' },
-                            '62%': { transform: 'translate(0,0) skew(5deg)' },
+                        shimmer: {
+                            '0%': { backgroundPosition: '-200% 0' },
+                            '100%': { backgroundPosition: '200% 0' },
                         },
                     },
                 },
@@ -75,154 +73,206 @@
         }
     </script>
 
-    <!-- Global Styles -->
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body { background-color: #070708; color: #e7e7ea; font-family: 'Inter', system-ui, sans-serif; overflow-x: hidden; }
+        body { min-height: 100vh; }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 10px; height: 10px; }
+        ::-webkit-scrollbar-track { background: #0d0d10; }
+        ::-webkit-scrollbar-thumb { background: linear-gradient(180deg, #00ff41, #00d4ff); border-radius: 8px; }
+        ::-webkit-scrollbar-thumb:hover { background: linear-gradient(180deg, #00d4ff, #bf00ff); }
+
+        /* Selection */
+        ::selection { background: rgba(0, 255, 65, 0.35); color: #fff; }
+
+        /* Neon helpers */
+        .neon-text { text-shadow: 0 0 12px rgba(0, 255, 65, 0.6), 0 0 24px rgba(0, 255, 65, 0.3); }
+        .neon-text-blue { text-shadow: 0 0 12px rgba(0, 212, 255, 0.6), 0 0 24px rgba(0, 212, 255, 0.3); }
+
+        .glass {
+            background: linear-gradient(180deg, rgba(20, 20, 28, 0.7), rgba(13, 13, 18, 0.7));
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border: 1px solid rgba(0, 255, 65, 0.12);
+        }
+        .glass-strong {
+            background: rgba(10, 10, 14, 0.85);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(0, 255, 65, 0.18);
         }
 
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #0a0a0a;
-            color: #e0e0e0;
-            overflow-x: hidden;
+        /* Animated grid */
+        .grid-bg {
+            background-image:
+                linear-gradient(rgba(0, 255, 65, 0.06) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 255, 65, 0.06) 1px, transparent 1px);
+            background-size: 40px 40px;
+            background-position: -1px -1px;
         }
 
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar {
-            width: 8px;
+        /* Glow border on hover */
+        .hover-glow {
+            position: relative;
+            transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease;
+        }
+        .hover-glow:hover {
+            transform: translateY(-3px);
+            border-color: rgba(0, 255, 65, 0.55);
+            box-shadow: 0 0 0 1px rgba(0, 255, 65, 0.35), 0 10px 30px -10px rgba(0, 255, 65, 0.4);
         }
 
-        ::-webkit-scrollbar-track {
-            background: #0a0a0a;
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: #00ff41;
-            border-radius: 4px;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background: #00d4ff;
-        }
-
-        /* Neon Glow Effects */
-        .neon-text {
-            text-shadow: 0 0 10px #00ff41, 0 0 20px #00ff41, 0 0 30px #00ff41;
-        }
-
-        .neon-border {
-            box-shadow: 0 0 5px #00ff41, 0 0 10px #00ff41, inset 0 0 5px rgba(0, 255, 65, 0.1);
-        }
-
-        .glass-effect {
-            background: rgba(26, 26, 26, 0.8);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(0, 255, 65, 0.2);
-        }
-
-        /* Glitch Effect */
-        .glitch-effect:hover {
-            animation: glitch 0.3s infinite;
-        }
-
-        /* Matrix Rain Canvas */
+        /* Matrix canvas */
         #matrix-rain {
             position: fixed;
-            top: 0;
-            left: 0;
+            inset: 0;
             width: 100%;
             height: 100%;
             pointer-events: none;
             z-index: 0;
-            opacity: 0.3;
+            opacity: 0.25;
         }
 
-        /* Loader */
-        .loader {
-            border: 2px solid #1a1a1a;
-            border-top: 2px solid #00ff41;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
+        /* Typing cursor */
+        .typing-cursor { display: inline-block; width: 2px; background: #00ff41; margin-left: 4px; animation: blink 1s steps(1) infinite; }
+        @keyframes blink { 0%, 50% { opacity: 1; } 50.01%, 100% { opacity: 0; } }
+
+        /* Page transition */
+        .page-enter { animation: fadeUp .45s ease-out; }
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Gradient text */
+        .gradient-text {
+            background: linear-gradient(90deg, #00ff41 0%, #00d4ff 50%, #bf00ff 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            color: transparent;
         }
 
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+        /* Animated gradient background for hero */
+        .hero-bg {
+            background: radial-gradient(1200px 600px at 50% -10%, rgba(0, 255, 65, 0.12), transparent 60%),
+                        radial-gradient(800px 400px at 80% 20%, rgba(0, 212, 255, 0.10), transparent 60%),
+                        radial-gradient(800px 400px at 10% 30%, rgba(191, 0, 255, 0.10), transparent 60%);
         }
 
-        /* Scroll Reveal Animation */
-        .reveal {
-            opacity: 0;
-            transform: translateY(30px);
-            transition: all 0.6s ease-out;
-        }
+        /* Skeleton */
+        .skeleton { background: linear-gradient(90deg, #13131a 0%, #1d1d27 50%, #13131a 100%); background-size: 200% 100%; animation: shimmer 1.6s linear infinite; }
+        @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 
-        .reveal.active {
-            opacity: 1;
-            transform: translateY(0);
+        /* Buttons */
+        .btn-primary {
+            background: linear-gradient(90deg, #00ff41, #00d4ff);
+            color: #070708;
+            font-weight: 700;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.6rem;
+            transition: transform .15s ease, box-shadow .2s ease, filter .2s ease;
         }
+        .btn-primary:hover { transform: translateY(-1px); filter: brightness(1.05); box-shadow: 0 0 0 1px rgba(0,255,65,.35), 0 8px 24px -8px rgba(0,255,65,.5); }
+        .btn-primary:disabled { opacity: .6; cursor: not-allowed; transform: none; }
 
-        /* Typing Cursor */
-        .typing-cursor::after {
-            content: '|';
-            animation: blink 1s infinite;
+        .btn-ghost {
+            border: 1px solid rgba(0, 255, 65, 0.4);
+            color: #00ff41;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.6rem;
+            transition: all .2s ease;
+            background: transparent;
         }
+        .btn-ghost:hover { background: rgba(0, 255, 65, 0.08); box-shadow: 0 0 0 1px rgba(0,255,65,.3); }
 
-        @keyframes blink {
-            0%, 50% { opacity: 1; }
-            51%, 100% { opacity: 0; }
+        .btn-danger {
+            background: rgba(239, 68, 68, 0.12);
+            color: #f87171;
+            border: 1px solid rgba(239, 68, 68, 0.35);
+            padding: 0.5rem 0.9rem;
+            border-radius: 0.5rem;
+            transition: all .2s ease;
         }
+        .btn-danger:hover { background: rgba(239, 68, 68, 0.2); }
 
-        /* Page Transition */
-        .page-enter {
-            animation: fadeIn 0.5s ease-out;
+        /* Inputs */
+        .field {
+            width: 100%;
+            background: #0d0d12;
+            border: 1px solid #22222d;
+            border-radius: 0.5rem;
+            padding: 0.7rem 0.9rem;
+            color: #e7e7ea;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            transition: border-color .15s ease, box-shadow .15s ease;
         }
+        .field:focus { outline: none; border-color: #00ff41; box-shadow: 0 0 0 3px rgba(0, 255, 65, 0.15); }
 
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
+        /* Tag chip */
+        .chip {
+            display: inline-block;
+            padding: 0.2rem 0.55rem;
+            border-radius: 999px;
+            font-size: 0.7rem;
+            font-family: 'JetBrains Mono', monospace;
+            background: rgba(0, 255, 65, 0.08);
+            color: #00ff41;
+            border: 1px solid rgba(0, 255, 65, 0.25);
         }
+        .chip-blue { background: rgba(0, 212, 255, 0.08); color: #00d4ff; border-color: rgba(0, 212, 255, 0.25); }
+        .chip-purple { background: rgba(191, 0, 255, 0.08); color: #d896ff; border-color: rgba(191, 0, 255, 0.25); }
+        .chip-yellow { background: rgba(245, 211, 0, 0.08); color: #f5d300; border-color: rgba(245, 211, 0, 0.3); }
+
+        /* Status dots */
+        .dot { display: inline-block; width: 8px; height: 8px; border-radius: 999px; }
+        .dot-green { background: #00ff41; box-shadow: 0 0 8px #00ff41; }
+        .dot-red { background: #ef4444; box-shadow: 0 0 8px #ef4444; animation: pulse 1.5s infinite; }
+        .dot-yellow { background: #f5d300; box-shadow: 0 0 8px #f5d300; }
+
+        /* Pulse */
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+        /* Toast */
+        .toast-enter { animation: toastIn .3s ease-out; }
+        @keyframes toastIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+
+        /* Spinner */
+        .spinner { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,.2); border-top-color: #00ff41; border-radius: 999px; animation: spin 0.8s linear infinite; display: inline-block; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Mobile menu animation */
+        .menu-anim { animation: menuSlide .25s ease-out; }
+        @keyframes menuSlide { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Card hover */
+        .card-hover { transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease; }
+        .card-hover:hover { transform: translateY(-4px); border-color: rgba(0, 255, 65, 0.4); box-shadow: 0 10px 30px -10px rgba(0, 255, 65, 0.35); }
+
+        /* Custom checkbox */
+        .check {
+            appearance: none;
+            width: 18px; height: 18px;
+            border: 1px solid #2a2a35;
+            border-radius: 4px;
+            background: #0d0d12;
+            display: inline-block; position: relative;
+            cursor: pointer; vertical-align: middle;
+        }
+        .check:checked { background: #00ff41; border-color: #00ff41; }
+        .check:checked::after { content: '✓'; color: #070708; font-weight: 800; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 12px; }
     </style>
 </head>
-<body>
-    <!-- Matrix Rain Canvas -->
+<body class="dark">
+    <!-- Matrix rain canvas -->
     <canvas id="matrix-rain"></canvas>
 
-    <!-- React Root -->
-    <div id="root"></div>
+    <!-- React root -->
+    <div id="root" class="relative z-10"></div>
 
-    <!-- Debug console -->
-    <script>
-        console.log('=== Goncik-tech Debug ===');
-        console.log('Loading data.js...');
-    </script>
-
-    <!-- Data Script (must load before app.js) -->
+    <!-- Data first -->
     <script src="js/data.js"></script>
 
-    <!-- Debug after data -->
-    <script>
-        console.log('data.js loaded:', window.data ? 'OK' : 'FAILED');
-        if (window.data) {
-            console.log('Scripts:', window.data.scripts?.length);
-            console.log('Tutorials:', window.data.tutorials?.length);
-            console.log('News:', window.data.news?.length);
-        }
-    </script>
-
-    <!-- Main App Script -->
+    <!-- App -->
     <script type="text/babel" src="js/app.js"></script>
-
-    <!-- Debug final -->
-    <script>
-        console.log('App.js loaded');
-        console.log('React available:', typeof React !== 'undefined');
-        console.log('ReactDOM available:', typeof ReactDOM !== 'undefined');
-    </script>
 </body>
 </html>
