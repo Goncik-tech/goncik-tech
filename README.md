@@ -1,172 +1,132 @@
-# Goncik-tech
+# goncik-tech 3.0 — Liquid Cloud Edition
 
-Nowoczesna strona w stylu cyberpunk do udostępniania skryptów, bypassów AI i narzędzi.
-React 18 + Tailwind CSS + lekki serwer Python z zapisem danych.
+Nowoczesna platforma cloud ze skryptami, bypassami AI i narzędziami dla developerów.
+Zbudowana w React 18 + Supabase z designem **Liquid Glass** i animowanymi gradientami.
 
 ---
 
 ## Funkcje
 
-- **Hero** z animacją Matrix rain w tle
-- **Skrypty, Bypassy, Darmowe** — z filtrami (kategoria, cena, wyszukiwarka)
-- **Tutoriale** — pełne artykuły z HTML-em
-- **Aktualności** — lista newsów z kategoriami
-- **Kontakt** — formularz z lokalnym zapisem wiadomości
-- **Panel admina** — pełne CRUD na skryptach, tutorialach, newsach + odpowiedzi na wiadomości
-- **Zapis do bazy** — każda zmiana w panelu admina automatycznie zapisuje się do pliku `js/data.js`
-- **Status API** — wskaźnik online/offline widoczny w navbarze i stopce
-- **Toast notifications** — informacje zwrotne po każdej akcji
+*   **Cloud Native** — wszystkie dane w Supabase, dostępne globalnie 24/7.
+*   **Mobile First** — dodawaj skrypty z telefonu, komputera, tabletu.
+*   **Liquid Glass UI** — animowane gradienty, glassmorphism, blur 24px, neonowe akcenty.
+*   **Slow Matrix Rain** — spowolniona animacja kodu w tle dla eleganckiego klimatu.
+*   **Admin Panel** — pełne CRUD na skryptach, tutorialach, newsach + odpowiedzi na wiadomości.
+*   **Real-time Updates** — zmiany widoczne natychmiast dla wszystkich użytkowników.
+*   **Skeleton Loaders** — profesjonalne loading states.
+*   **Toast Notifications** — informacja zwrotna po każdej akcji.
 
 ---
 
-## Uruchomienie
+## Szybki Start
 
-### Wymagania
-- Python 3.8+
-- Przeglądarka (Chrome 90+, Firefox 88+, Edge 90+, Safari 14+)
+### 1. Konfiguracja Supabase (jednorazowo)
 
-### Sposób 1 — PowerShell (zalecany)
-```powershell
-cd "C:\Users\Ignacy\Documents\OPEN_CODE_CTO_AI"
-.\StartGoncikTech.ps1
-```
-Wybierz `S` (start) lub `O` (otwórz w przeglądarce).
+1.  Utwórz konto na [supabase.com](https://supabase.com/).
+2.  Stwórz nowy projekt.
+3.  W panelu Supabase przejdź do **SQL Editor** (ikona `>_` po lewej).
+4.  Kliknij **"New query"**, wklej zawartość pliku [`supabase_setup.sql`](./supabase_setup.sql) i kliknij **RUN**.
+5.  W pliku `js/app.js` upewnij się, że stałe `SUPABASE_URL` i `SUPABASE_ANON_KEY` wskazują na Twój projekt.
 
-### Sposób 2 — Skrypt .bat
-```cmd
-cd C:\Users\Ignacy\Documents\OPEN_CODE_CTO_AI
-START.bat
-```
+### 2. Uruchomienie lokalne
 
-### Sposób 3 — Ręcznie
-```powershell
-cd "C:\Users\Ignacy\Documents\OPEN_CODE_CTO_AI"
-python server_api.py
-```
+Strona nie wymaga już lokalnego serwera! Wystarczy:
+*   Otwórz `index.html` w przeglądarce — **ale uwaga**: niektóre przeglądarki blokują moduły przy `file://`.
+*   **Zalecane:** Użyj VS Code z rozszerzeniem "Live Server" lub uruchom prosty serwer:
+    ```bash
+    python -m http.server 8000
+    ```
+    Następnie otwórz `http://localhost:8000`.
 
-Strona działa pod adresem **http://localhost:8000**.
+### 3. Deploy na GitHub Pages
 
----
-
-## Panel admina
-
-1. Otwórz stronę i kliknij **"Admin"** (navbar / stopka).
-2. Wpisz hasło: **`goncik123`**
-3. Zaloguj się — masz dostęp do pełnego panelu z zakładkami:
-   - **Overview** — statystyki i opis
-   - **Skrypty / Tutoriale / Aktualności** — lista + przyciski `+ Dodaj`, edycja, usuwanie
-   - **Wiadomości** — odczyt, odpowiedzi, usuwanie
-4. **Każda zmiana zapisuje się automatycznie** do pliku `js/data.js` przez endpoint `POST /api/save`.
-
-> Zmiana hasła: edytuj stałą `ADMIN_PASSWORD` w `js/app.js` (linia ~31).
+1.  Wgraj zmiany na GitHub.
+2.  Settings → Pages → Source: `main` branch, `/ (root)`.
+3.  Po 1-2 minutach strona będzie dostępna pod `https://<twoj-user>.github.io/goncik-tech/`.
+4.  Panel admina działa z każdego urządzenia, które ma dostęp do internetu.
 
 ---
 
-## Struktura projektu
+## Panel Admina
+
+1.  Kliknij **"Admin"** w navbarze lub stopce.
+2.  Wpisz hasło: **`goncik123`** (zmień w `js/app.js`).
+3.  Zaloguj się — masz dostęp do:
+    *   **Overview** — statystyki i opis
+    *   **Skrypty / Tutoriale / Aktualności** — pełne CRUD
+    *   **Wiadomości** — odczyt, odpowiedzi, usuwanie
+4.  **Każda zmiana zapisuje się natychmiast** do bazy Supabase i jest widoczna dla wszystkich.
+
+---
+
+## Struktura Projektu
 
 ```
-OPEN_CODE_CTO_AI/
-├── server_api.py          # Serwer Python (HTTP + API zapisu)
-├── index.html             # Punkt wejścia (HTML + Tailwind config + style)
-├── package.json           # Metadane projektu
-├── README.md              # Ten plik
-├── START.bat              # Launcher CMD (start + przeglądarka)
-├── StartGoncikTech.ps1    # Launcher PowerShell (menu)
-├── quick_start.ps1        # Launcher PowerShell (auto-open)
-├── start_server.bat       # Prosty launcher CMD
-├── 404.html               # Strona błędu 404
+goncik-tech/
+├── index.html              # Punkt wejścia (HTML + Tailwind + style)
+├── supabase_setup.sql      # Skrypt SQL do setupu bazy (tabele + RLS + dane)
+├── package.json            # Metadane projektu
+├── README.md               # Ten plik
+├── .gitignore              # Ignorowane pliki
 └── js/
-    ├── app.js             # Cała aplikacja React
-    ├── data.js            # Baza danych (skrypty/tutoriale/newsy) — zapisywana przez API
-    └── data.backup.js     # Kopia zapasowa (tworzona automatycznie)
+    └── app.js              # Cała aplikacja React (single-file)
 ```
 
 ---
 
 ## Architektura
 
-### Frontend (`js/app.js`)
-- React 18 (UMD, bez bundlera)
-- Babel Standalone — kompilacja JSX w locie
-- Tailwind CSS (CDN) — utility classes
-- Wszystko w jednym pliku, podzielone na sekcje:
-  1. Data layer + API client
-  2. Toast system
-  3. Hooks (`useScrollReveal`, `useServerStatus`, `useAdminAuth`, `useMessages`)
-  4. Matrix rain canvas
-  5. UI primitives
-  6. Navbar + Footer
-  7. Pages (Home, Scripts, Tutorials, News, Contact, 404)
-  8. Admin panel (login + dashboard)
-  9. Główny `App`
+### Frontend
+*   **React 18** (UMD, bez bundlera)
+*   **Babel Standalone** — kompilacja JSX w przeglądarce
+*   **Tailwind CSS** (CDN) — utility classes
+*   **@supabase/supabase-js** (CDN) — klient bazy danych
 
-### Backend (`server_api.py`)
-- Wbudowany `http.server` Pythona — zero zależności
-- Serwuje pliki statyczne
-- Endpoint `POST /api/save` — przyjmuje JSON `{scripts, tutorials, news}`, waliduje i zapisuje do `js/data.js`
-- Endpoint `POST /api/reset` — przywraca dane z `data.backup.js`
-- Endpoint `GET /api/status` — zwraca status serwera
+### Backend
+*   **Supabase** — baza danych PostgreSQL w chmurze
+*   **Row Level Security** — publiczny odczyt, zapis przez panel admina
+*   **API Auto-generated** — RESTful API przez PostgREST
 
-### Dlaczego własny serwer?
-Standardowy `python -m http.server` potrafi tylko serwować pliki — nie zapisuje zmian.
-`server_api.py` dodaje brakujący kawałek: endpoint, który przyjmuje dane z frontendu
-i nadpisuje plik `js/data.js`. Dzięki temu zmiany w panelu admina **przetrwają odświeżenie strony**.
+### Dlaczego Supabase zamiast własnego serwera?
+*   **Zero konfiguracji** — nie trzeba uruchamiać żadnego serwera.
+*   **Globalny dostęp** — dane są dostępne 24/7 z każdego urządzenia.
+*   **Skalowalność** — Supabase automatycznie skaluje bazę danych.
+*   **Real-time** — opcjonalnie można włączyć subskrypcje real-time.
+*   **Bezpieczeństwo** — RLS chroni dane przed nieautoryzowanym dostępem.
 
 ---
 
-## API
+## API Supabase
 
-### `POST /api/save`
-Zapisuje dane do `js/data.js`.
-
-**Body:**
-```json
-{
-  "scripts":   [...],
-  "tutorials": [...],
-  "news":      [...]
-}
-```
-
-**Odpowiedź:**
-```json
-{ "ok": true, "saved": { "scripts": 6, "tutorials": 2, "news": 4 }, "path": "..." }
-```
-
-### `GET /api/status`
-Zwraca informacje o serwerze.
-
-### `POST /api/reset`
-Przywraca dane z `data.backup.js`.
-
----
-
-## Deploy
-
-### Netlify / Vercel / GitHub Pages
-Strona jest w pełni statyczna — po zdeployowaniu **panel admina działa w trybie localStorage**
-(pojedynczy użytkownik, brak zapisu na serwer). Aby uzyskać pełny zapis, deploy musi
-wspierać Python (np. Railway, Render, Fly.io) — wtedy trzeba dostosować URL API w `js/app.js`.
-
-### Lokalnie (dev)
-Użyj `server_api.py` — pełna funkcjonalność z zapisem.
+Frontend korzysta z tabel:
+*   `scripts` — skrypty (id, name, description, category, tags, features, download_url, is_free, downloads, rating, last_updated, version, author, requirements, featured)
+*   `tutorials` — tutoriale (id, title, excerpt, content, category, tags, author, date, read_time, featured)
+*   `news` — aktualności (id, title, excerpt, content, category, author, date, featured)
+*   `messages` — wiadomości z formularza kontaktowego (id, name, email, subject, message, status, replies, created_at)
 
 ---
 
 ## Customizacja
 
-### Kolory neon
+### Kolory Liquid Glass
 Edytuj `tailwind.config` w `index.html`:
 ```js
 colors: {
     neon: {
-        green: '#00ff41',
+        green: '#00ff88',
         blue:  '#00d4ff',
-        purple:'#bf00ff',
-        pink:  '#ff00ff',
+        purple:'#a855f7',
+        pink:  '#ff006e',
         yellow:'#f5d300',
     }
 }
+```
+
+### Prędkość Matrix Rain
+Edytuj w `js/app.js` (funkcja `MatrixRain`):
+```js
+const fps = 24; // Im mniej, tym wolniej (default 24)
+drops[i] += 0.45; // Prędkość opadania (default 0.45)
 ```
 
 ### Hasło admina
@@ -175,8 +135,25 @@ Edytuj `js/app.js`:
 const ADMIN_PASSWORD = 'goncik123';
 ```
 
-### Port serwera
-Edytuj `server_api.py` (stała `PORT = 8000`) i `StartGoncikTech.ps1` (zmienna `$port`).
+### Supabase URL i klucz
+Edytuj `js/app.js`:
+```js
+const SUPABASE_URL = 'https://twoj-projekt.supabase.co';
+const SUPABASE_ANON_KEY = 'twoj-anon-key';
+```
+
+---
+
+## Bezpieczeństwo
+
+⚠️ **Ważne dla produkcji:**
+
+Aktualna konfiguracja RLS (w `supabase_setup.sql`) pozwala **każdemu** na dodawanie/modyfikację danych. To celowe na czas developmentu. W produkcji:
+
+1.  Włącz **Supabase Auth** (email/hasło, OAuth, magic link).
+2.  Dodaj kolumnę `user_id` w tabelach.
+3.  Zmień polityki RLS, aby tylko zalogowani użytkownicy z odpowiednimi uprawnieniami mogli edytować.
+4.  Przenieś logowanie admina do Supabase Auth (zamiast prostego hasła w kodzie).
 
 ---
 
@@ -186,4 +163,4 @@ MIT
 
 ---
 
-**Enjoy!** — darmowe skrypty, bypassy AI i narzędzia.
+**Enjoy!** — darmowe skrypty, bypassy AI i narzędzia, w chmurze.

@@ -1,8 +1,4 @@
-# Backup files
-js/app.js.backup
-js/data.backup.js
-fix_framer_motion.ps1
-convert_jsx_to_js.ps1
+# Logs
 *.log
 server.log
 
@@ -42,3 +38,8 @@ coverage/
 # Temp
 *.tmp
 *.temp
+
+# Backup files
+*.backup
+*.bak
+data.backup.js

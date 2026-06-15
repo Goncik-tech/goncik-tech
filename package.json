@@ -1,15 +1,11 @@
 {
   "name": "goncik-tech",
   "version": "3.0.0",
-  "description": "Goncik-tech - scripts, bypasses, and AI tools (React + Python backend)",
+  "description": "goncik-tech 3.0 — Liquid Cloud Edition (React + Supabase)",
   "scripts": {
-    "start": "python server_api.py",
-    "start:win": "START.bat",
-    "start:ps": "powershell -ExecutionPolicy Bypass -File StartGoncikTech.ps1"
+    "dev": "python -m http.server 8000"
   },
+  "keywords": ["react", "supabase", "tailwind", "glassmorphism", "cyberpunk"],
   "dependencies": {},
-  "devDependencies": {},
-  "engines": {
-    "python": ">=3.8"
-  }
+  "devDependencies": {}
 }
