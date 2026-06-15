@@ -25,7 +25,63 @@ try {
     console.error('Supabase init error:', e);
 }
 
-const ADMIN_PASSWORD = 'goncik123';
+const ADMIN_PASSWORD = 'goncik123'; // Hasło admina (plaintext, haszowane SHA-256 w kliencie)
+
+/* SHA-256 hash for 'goncik123': 999a58e9830a52d8ae7afc4cfdf8b07faae69d59d79c021ed7ab15c56114fc74 */
+
+// Helper: SHA-256 hash (Web Crypto API)
+async function sha256(text) {
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+    return Array.from(new Uint8Array(buf)).map((x) => x.toString(16).padStart(2, '0')).join('');
+}
+
+// API for admin-only operations (uses direct fetch with x-admin-token header)
+const AdminAPI = {
+    async insert(table, item, token) {
+        const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'apikey': SUPABASE_ANON_KEY,
+                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                'x-admin-token': token,
+                'Prefer': 'return=representation',
+            },
+            body: JSON.stringify(item),
+        });
+        if (!r.ok) {
+            const err = await r.text();
+            throw new Error(err);
+        }
+        return r.json();
+    },
+    async update(table, id, item, token) {
+        const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}?id=eq.${id}`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'apikey': SUPABASE_ANON_KEY,
+                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                'x-admin-token': token,
+                'Prefer': 'return=representation',
+            },
+            body: JSON.stringify(item),
+        });
+        if (!r.ok) throw new Error(await r.text());
+        return r.json();
+    },
+    async delete(table, id, token) {
+        const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}?id=eq.${id}`, {
+            method: 'DELETE',
+            headers: {
+                'apikey': SUPABASE_ANON_KEY,
+                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                'x-admin-token': token,
+            },
+        });
+        if (!r.ok) throw new Error(await r.text());
+    },
+};
 
 /* =========================================================
    2. TOAST SYSTEM
@@ -95,20 +151,49 @@ function useSupabaseStatus() {
 }
 
 function useAdminAuth() {
-    const [isAdmin, setIsAdmin] = useState(() => sessionStorage.getItem('goncik_admin') === '1');
-    const login = (pwd) => {
-        if (pwd === ADMIN_PASSWORD) {
-            sessionStorage.setItem('goncik_admin', '1');
+    const [isAdmin, setIsAdmin] = useState(() => !!sessionStorage.getItem('goncik_token'));
+    const [token, setToken] = useState(() => sessionStorage.getItem('goncik_token'));
+
+    // Weryfikuj token przy starcie (jeśli istnieje)
+    useEffect(() => {
+        if (token && supabase) {
+            supabase.rpc('admin_verify', { token }).then(({ data }) => {
+                if (!data) {
+                    // Token nieważny - wyloguj
+                    sessionStorage.removeItem('goncik_token');
+                    setToken(null);
+                    setIsAdmin(false);
+                }
+            });
+        }
+    }, []);
+
+    const login = async (pwd) => {
+        if (!supabase) return false;
+        try {
+            const hash = await sha256(pwd);
+            const { data, error } = await supabase.rpc('admin_login', { password_hash: hash });
+            if (error || !data) return false;
+            sessionStorage.setItem('goncik_token', data);
+            setToken(data);
             setIsAdmin(true);
             return true;
+        } catch (e) {
+            console.error('Login error:', e);
+            return false;
         }
-        return false;
     };
-    const logout = () => {
-        sessionStorage.removeItem('goncik_admin');
+
+    const logout = async () => {
+        if (token && supabase) {
+            await supabase.rpc('admin_logout', { token });
+        }
+        sessionStorage.removeItem('goncik_token');
+        setToken(null);
         setIsAdmin(false);
     };
-    return { isAdmin, login, logout };
+
+    return { isAdmin, token, login, logout };
 }
 
 /* =========================================================
@@ -899,9 +984,15 @@ function WhySection() {
 function AdminLoginModal({ open, onClose, onLogin }) {
     const [pwd, setPwd] = useState('');
     const [err, setErr] = useState('');
-    const submit = (e) => {
+    const [loading, setLoading] = useState(false);
+    const submit = async (e) => {
         e.preventDefault();
-        if (onLogin(pwd)) { onClose(); setPwd(''); setErr(''); }
+        if (loading) return;
+        setLoading(true);
+        setErr('');
+        const ok = await onLogin(pwd);
+        setLoading(false);
+        if (ok) { onClose(); setPwd(''); }
         else setErr('Nieprawidłowe hasło');
     };
     return (
@@ -917,14 +1008,16 @@ function AdminLoginModal({ open, onClose, onLogin }) {
                 {err && <div className="mt-2 text-xs font-mono text-red-400">{err}</div>}
                 <div className="mt-5 flex gap-2">
                     <button type="button" onClick={onClose} className="btn-ghost flex-1">Anuluj</button>
-                    <button type="submit" className="btn-primary flex-1">Zaloguj</button>
+                    <button type="submit" className="btn-primary flex-1 inline-flex items-center justify-center gap-2" disabled={loading}>
+                        {loading ? <><Spinner />Logowanie…</> : 'Zaloguj'}
+                    </button>
                 </div>
             </form>
         </Modal>
     );
 }
 
-function AdminDashboard({ open, onClose, data, setData, refresh, messages, onMarkRead, onReply, onDeleteMessage, serverStatus }) {
+function AdminDashboard({ open, onClose, data, setData, refresh, messages, onMarkRead, onReply, onDeleteMessage, serverStatus, token }) {
     const [tab, setTab] = useState('overview');
     const [editing, setEditing] = useState(null);
     const [selectedMessage, setSelectedMessage] = useState(null);
@@ -945,14 +1038,11 @@ function AdminDashboard({ open, onClose, data, setData, refresh, messages, onMar
     const handleSave = async (type, item) => {
         setSaving(true);
         try {
-            const table = type;
             if (item.id) {
-                const { error } = await supabase.from(table).update(item).eq('id', item.id);
-                if (error) throw error;
+                await AdminAPI.update(type, item.id, item, token);
             } else {
-                const { data: inserted, error } = await supabase.from(table).insert([item]).select();
-                if (error) throw error;
-                item.id = inserted?.[0]?.id;
+                const inserted = await AdminAPI.insert(type, item, token);
+                if (inserted?.[0]?.id) item.id = inserted[0].id;
             }
             await refresh();
             setEditing(null);
@@ -968,8 +1058,7 @@ function AdminDashboard({ open, onClose, data, setData, refresh, messages, onMar
         if (!confirm('Na pewno usunąć?')) return;
         setSaving(true);
         try {
-            const { error } = await supabase.from(type).delete().eq('id', id);
-            if (error) throw error;
+            await AdminAPI.delete(type, id, token);
             await refresh();
             toast.push('Usunięto ✓', 'success');
         } catch (e) {
@@ -1293,7 +1382,7 @@ function App() {
     const [messages, setMessages] = useState([]);
     const toast = useToast();
     const serverStatus = useSupabaseStatus();
-    const { isAdmin, login, logout } = useAdminAuth();
+    const { isAdmin, token, login, logout } = useAdminAuth();
 
     // Fetch all data from Supabase
     const refresh = useCallback(async () => {
@@ -1341,17 +1430,20 @@ function App() {
         return { ok: true, data: inserted };
     };
     const onMarkRead = async (id) => {
-        await supabase.from('messages').update({ status: 'read' }).eq('id', id);
+        try { await AdminAPI.update('messages', id, { status: 'read' }, token); }
+        catch (e) { console.error('mark read:', e); }
         await refresh();
     };
     const onReply = async (id, text) => {
         const m = messages.find((x) => x.id === id);
         const newReplies = [...(m.replies || []), { id: Date.now(), text, timestamp: new Date().toISOString(), isAdmin: true }];
-        await supabase.from('messages').update({ replies: newReplies, status: 'replied' }).eq('id', id);
+        try { await AdminAPI.update('messages', id, { replies: newReplies, status: 'replied' }, token); }
+        catch (e) { console.error('reply:', e); }
         await refresh();
     };
     const onDeleteMessage = async (id) => {
-        await supabase.from('messages').delete().eq('id', id);
+        try { await AdminAPI.delete('messages', id, token); }
+        catch (e) { console.error('delete message:', e); }
         await refresh();
     };
 
@@ -1385,8 +1477,8 @@ function App() {
                 <main className="flex-1">{renderPage()}</main>
                 <Footer isAdmin={isAdmin} onAdminClick={onAdminClick} onLogout={logout} status={serverStatus} />
 
-                <AdminLoginModal open={loginOpen} onClose={() => setLoginOpen(false)} onLogin={(pwd) => {
-                    const ok = login(pwd);
+                <AdminLoginModal open={loginOpen} onClose={() => setLoginOpen(false)} onLogin={async (pwd) => {
+                    const ok = await login(pwd);
                     if (ok) { setLoginOpen(false); setAdminOpen(true); toast.push('Zalogowano ✓', 'success'); }
                     return ok;
                 }} />
@@ -1403,6 +1495,7 @@ function App() {
                         onReply={onReply}
                         onDeleteMessage={onDeleteMessage}
                         serverStatus={serverStatus}
+                        token={token}
                     />
                 )}
             </div>

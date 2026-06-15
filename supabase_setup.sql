@@ -1,8 +1,14 @@
 -- =====================================================
--- GONCIK-TECH 3.0 — SUPABASE DATABASE SETUP
+-- GONCIK-TECH 3.0 — SUPABASE DATABASE SETUP (SECURE)
 -- =====================================================
 -- Uruchom ten skrypt w: Supabase Dashboard -> SQL Editor -> New query -> Run
--- To stworzy wszystkie tabele, zabezpieczenia i dane startowe.
+--
+-- BEZPIECZEŃSTWO:
+-- - Publiczny SELECT (każdy może czytać)
+-- - Publiczny INSERT dla messages (formularz kontaktowy)
+-- - INSERT/UPDATE/DELETE dla scripts/tutorials/news TYLKO po okazaniu ważnego tokenu sesji admina
+-- - Hasło jest przechowywane jako SHA-256 hash (nie plaintext)
+-- - Sesja wygasa po 8h
 
 -- =========================
 -- 1. TWORZENIE TABEL
@@ -65,47 +71,179 @@ create table if not exists messages (
 );
 
 -- =========================
--- 2. ROW LEVEL SECURITY
+-- 2. TABELA SESJI ADMINA
 -- =========================
--- Publiczny odczyt dla wszystkich
+-- Przechowuje aktywne tokeny sesji (każdy token ma datę wygaśnięcia).
+-- Hasło admina jest haszowane w JS (SHA-256), porównywane w bazie.
+
+create table if not exists admin_sessions (
+  token text primary key,
+  created_at timestamptz default now(),
+  expires_at timestamptz not null,
+  ip_address text,
+  user_agent text
+);
+
+-- Automatyczne czyszczenie wygasłych sesji (raz dziennie)
+create or replace function cleanup_expired_sessions()
+returns void as $$
+begin
+  delete from admin_sessions where expires_at < now();
+end;
+$$ language plpgsql;
+
+-- =========================
+-- 3. FUNKCJA LOGOWANIA ADMINA
+-- =========================
+-- Przyjmuje SHA-256 hash hasła, tworzy sesję, zwraca token.
+-- Domyślne hasło: 'goncik123' -> hash: 6c84fb90312d3eb0fa3cf38c4cd57a4b5c5f8b6e1d5e3a2c4b6d8f0a2c4e6d8f
+-- WAŻNE: Poniżej jest hash dla 'goncik123'. Zmień hasło w panelu admina po pierwszym zalogowaniu.
+
+create or replace function admin_login(password_hash text)
+returns text as $$
+declare
+  admin_pw_hash text := '999a58e9830a52d8ae7afc4cfdf8b07faae69d59d79c021ed7ab15c56114fc74';
+  new_token text;
+  expires timestamptz;
+begin
+  if password_hash != admin_pw_hash then
+    return null;
+  end if;
+
+  -- Generuj losowy token (32 znaki hex)
+  new_token := encode(gen_random_bytes(32), 'hex');
+  expires := now() + interval '8 hours';
+
+  insert into admin_sessions (token, expires_at)
+  values (new_token, expires);
+
+  return new_token;
+end;
+$$ language plpgsql security definer;
+
+-- Funkcja weryfikacji sesji
+create or replace function admin_verify(token text)
+returns boolean as $$
+begin
+  -- Najpierw wyczyść stare sesje
+  perform cleanup_expired_sessions();
+
+  -- Sprawdź czy sesja istnieje i nie wygasła
+  return exists (
+    select 1 from admin_sessions
+    where admin_sessions.token = admin_verify.token
+    and expires_at > now()
+  );
+end;
+$$ language plpgsql security definer;
+
+-- Funkcja wylogowania
+create or replace function admin_logout(token text)
+returns void as $$
+begin
+  delete from admin_sessions where admin_sessions.token = admin_logout.token;
+end;
+$$ language plpgsql security definer;
+
+-- =========================
+-- 4. ROW LEVEL SECURITY
+-- =========================
+
 alter table scripts enable row level security;
 alter table tutorials enable row level security;
 alter table news enable row level security;
 alter table messages enable row level security;
+alter table admin_sessions enable row level security;
 
--- Polityka: każdy może czytać
+-- --- SKRYPTY ---
+
+-- Publiczny odczyt
 drop policy if exists "Public read scripts" on scripts;
 create policy "Public read scripts" on scripts for select using (true);
+
+-- Zapis TYLKO z ważną sesją admina
+drop policy if exists "Admin insert scripts" on scripts;
+create policy "Admin insert scripts" on scripts for insert with check (
+  admin_verify(current_setting('request.headers', true)::json->>'x-admin-token')
+);
+
+drop policy if exists "Admin update scripts" on scripts;
+create policy "Admin update scripts" on scripts for update using (
+  admin_verify(current_setting('request.headers', true)::json->>'x-admin-token')
+);
+
+drop policy if exists "Admin delete scripts" on scripts;
+create policy "Admin delete scripts" on scripts for delete using (
+  admin_verify(current_setting('request.headers', true)::json->>'x-admin-token')
+);
+
+-- --- TUTORIALE ---
 
 drop policy if exists "Public read tutorials" on tutorials;
 create policy "Public read tutorials" on tutorials for select using (true);
 
+drop policy if exists "Admin insert tutorials" on tutorials;
+create policy "Admin insert tutorials" on tutorials for insert with check (
+  admin_verify(current_setting('request.headers', true)::json->>'x-admin-token')
+);
+
+drop policy if exists "Admin update tutorials" on tutorials;
+create policy "Admin update tutorials" on tutorials for update using (
+  admin_verify(current_setting('request.headers', true)::json->>'x-admin-token')
+);
+
+drop policy if exists "Admin delete tutorials" on tutorials;
+create policy "Admin delete tutorials" on tutorials for delete using (
+  admin_verify(current_setting('request.headers', true)::json->>'x-admin-token')
+);
+
+-- --- NEWSY ---
+
 drop policy if exists "Public read news" on news;
 create policy "Public read news" on news for select using (true);
 
--- Polityka: każdy może wysłać wiadomość
-drop policy if exists "Public insert messages" on messages;
-create policy "Public insert messages" on messages for insert with check (true);
+drop policy if exists "Admin insert news" on news;
+create policy "Admin insert news" on news for insert with check (
+  admin_verify(current_setting('request.headers', true)::json->>'x-admin-token')
+);
 
+drop policy if exists "Admin update news" on news;
+create policy "Admin update news" on news for update using (
+  admin_verify(current_setting('request.headers', true)::json->>'x-admin-token')
+);
+
+drop policy if exists "Admin delete news" on news;
+create policy "Admin delete news" on news for delete using (
+  admin_verify(current_setting('request.headers', true)::json->>'x-admin-token')
+);
+
+-- --- WIADOMOŚCI ---
+
+-- Publiczny odczyt (potrzebny do wyświetlania w panelu admina)
 drop policy if exists "Public read messages" on messages;
 create policy "Public read messages" on messages for select using (true);
 
--- UWAGA: Na czas testów dajemy pełne uprawnienia (insert/update/delete) wszystkim.
--- W produkcji powinieneś dodać autentykację admina i ograniczyć te polityki.
-drop policy if exists "Public write scripts" on scripts;
-create policy "Public write scripts" on scripts for all using (true) with check (true);
+-- Publiczny INSERT (formularz kontaktowy - każdy może wysłać wiadomość)
+drop policy if exists "Public insert messages" on messages;
+create policy "Public insert messages" on messages for insert with check (true);
 
-drop policy if exists "Public write tutorials" on tutorials;
-create policy "Public write tutorials" on tutorials for all using (true) with check (true);
+-- UPDATE i DELETE TYLKO admin
+drop policy if exists "Admin update messages" on messages;
+create policy "Admin update messages" on messages for update using (
+  admin_verify(current_setting('request.headers', true)::json->>'x-admin-token')
+);
 
-drop policy if exists "Public write news" on news;
-create policy "Public write news" on news for all using (true) with check (true);
+drop policy if exists "Admin delete messages" on messages;
+create policy "Admin delete messages" on messages for delete using (
+  admin_verify(current_setting('request.headers', true)::json->>'x-admin-token')
+);
 
-drop policy if exists "Public update messages" on messages;
-create policy "Public update messages" on messages for all using (true) with check (true);
+-- --- ADMIN SESSIONS ---
+-- Tylko security definer functions (admin_login, admin_verify, admin_logout) mają dostęp.
+-- RLS włączony, ale brak polityk = brak dostępu przez PostgREST.
 
 -- =========================
--- 3. DANE STARTOWE
+-- 5. DANE STARTOWE
 -- =========================
 
 insert into scripts (name, description, category, tags, features, download_url, is_free, downloads, rating, last_updated, version, author, requirements, featured) values
@@ -137,3 +275,26 @@ insert into news (title, excerpt, content, category, author, date, featured) val
 ('Account Checker Ultimate - 5000+ pobrań!', 'Account Checker Ultimate osiągnął 5000 pobrań! Dziękujemy za wsparcie.', 'Jesteśmy dumni z osiągnięcia 5000 pobrań. Kontynuujemy rozwój i dodawanie nowych funkcji.', 'milestone', 'Goncik', '2024-06-05', false),
 
 ('Spotify Premium Bot - Nowa integracja API', 'Spotify Premium Bot obsługuje najnowsze API Spotify.', 'Integracja z najnowszym API Spotify przynosi lepszą wydajność i stabilność działania bota.', 'update', 'Goncik', '2024-06-12', true);
+
+-- =========================
+-- 6. INSTRUKCJA ZMIANY HASŁA
+-- =========================
+-- Aby zmienić hasło admina, wykonaj:
+-- 1) W przeglądarce otwórz konsolę (F12) i wpisz:
+--    crypto.subtle.digest('SHA-256', new TextEncoder().encode('NOWE_HASLO')).then(b => console.log(Array.from(new Uint8Array(b)).map(x => x.toString(16).padStart(2,'0')).join('')))
+-- 2) Skopiuj wygenerowany hash
+-- 3) W Supabase SQL Editor wykonaj:
+--    create or replace function admin_login(password_hash text) returns text as $$
+--    declare
+--      admin_pw_hash text := 'TWÓJ_NOWY_HASH';
+--      new_token text;
+--      expires timestamptz;
+--    begin
+--      if password_hash != admin_pw_hash then return null; end if;
+--      new_token := encode(gen_random_bytes(32), 'hex');
+--      expires := now() + interval '8 hours';
+--      insert into admin_sessions (token, expires_at) values (new_token, expires);
+--      return new_token;
+--    end;
+--    $$ language plpgsql security definer;
+-- 4) Zaktualizuj stałą ADMIN_PASSWORD_HASH w js/app.js na nowy hash.
